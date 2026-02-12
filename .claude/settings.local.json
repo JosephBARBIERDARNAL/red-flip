@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/josephbarbier/l/red-flip log --oneline --all)",
+      "WebSearch",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(1 <<'EOF'\nNo\nEOF)",
+      "Bash(npm install:*)",
+      "Bash(cargo build:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}
