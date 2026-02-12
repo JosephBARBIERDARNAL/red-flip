@@ -24,7 +24,8 @@ export default function LeaderboardTable({ players }: LeaderboardTableProps) {
               Elo
             </th>
             <th className="py-3 px-4 text-right text-sm font-medium text-gray-500">
-              W/L/D
+              <span className="text-green-600 font-bold">W</span>/
+              <span className="text-red-600 font-bold">L</span>/D
             </th>
             <th className="py-3 px-4 text-right text-sm font-medium text-gray-500">
               Games
@@ -51,7 +52,9 @@ export default function LeaderboardTable({ players }: LeaderboardTableProps) {
                 {player.elo}
               </td>
               <td className="py-3 px-4 text-right text-sm text-gray-600">
-                {player.wins}/{player.losses}/{player.draws}
+                <span className="text-green-600 font-bold">{player.wins}</span>/
+                <span className="text-red-600 font-bold">{player.losses}</span>/
+                {player.draws}
               </td>
               <td className="py-3 px-4 text-right text-sm text-gray-500">
                 {player.total_games}
