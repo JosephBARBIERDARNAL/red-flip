@@ -100,7 +100,10 @@ impl PlayerWsActor {
     fn heartbeat(&self, ctx: &mut ws::WebsocketContext<Self>) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
-                log::warn!("WebSocket heartbeat failed for user {}, disconnecting", act.user_id);
+                log::warn!(
+                    "WebSocket heartbeat failed for user {}, disconnecting",
+                    act.user_id
+                );
                 ctx.stop();
                 return;
             }

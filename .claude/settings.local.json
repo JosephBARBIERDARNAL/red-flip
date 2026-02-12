@@ -7,7 +7,8 @@
       "Bash(1 <<'EOF'\nNo\nEOF)",
       "Bash(npm install:*)",
       "Bash(cargo build:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(printf:*)"
     ]
   }
 }

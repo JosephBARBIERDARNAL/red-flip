@@ -65,8 +65,7 @@ impl Handler<JoinQueue> for MatchmakingActor {
         }
 
         // Notify player they're queued
-        msg.addr
-            .do_send(SendServerMessage(ServerMessage::Queued));
+        msg.addr.do_send(SendServerMessage(ServerMessage::Queued));
 
         self.queue.push(QueuedPlayer {
             user_id: msg.user_id,
@@ -101,21 +100,23 @@ impl MatchmakingActor {
         let is_ranked = p1.ranked && p2.ranked;
 
         // Notify both players
-        p1.addr.do_send(SendServerMessage(ServerMessage::MatchFound {
-            session_id: String::new(), // Will be set by session
-            opponent: OpponentInfo {
-                username: p2.username.clone(),
-                elo: p2.elo,
-            },
-        }));
+        p1.addr
+            .do_send(SendServerMessage(ServerMessage::MatchFound {
+                session_id: String::new(), // Will be set by session
+                opponent: OpponentInfo {
+                    username: p2.username.clone(),
+                    elo: p2.elo,
+                },
+            }));
 
-        p2.addr.do_send(SendServerMessage(ServerMessage::MatchFound {
-            session_id: String::new(),
-            opponent: OpponentInfo {
-                username: p1.username.clone(),
-                elo: p1.elo,
-            },
-        }));
+        p2.addr
+            .do_send(SendServerMessage(ServerMessage::MatchFound {
+                session_id: String::new(),
+                opponent: OpponentInfo {
+                    username: p1.username.clone(),
+                    elo: p1.elo,
+                },
+            }));
 
         // Create game session
         let session = GameSessionActor::new(

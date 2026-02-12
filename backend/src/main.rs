@@ -9,7 +9,7 @@ mod routes;
 
 use actix::Actor;
 use actix_cors::Cors;
-use actix_web::{web, App, HttpServer, middleware::Logger};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 
 use config::AppConfig;
 use game::matchmaking::MatchmakingActor;

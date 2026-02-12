@@ -3,8 +3,8 @@ use actix_web_actors::ws;
 use sqlx::SqlitePool;
 
 use crate::api::{dashboard, leaderboard, user};
-use crate::auth::{google, handlers};
 use crate::auth::middleware::extract_user_from_query;
+use crate::auth::{google, handlers};
 use crate::config::AppConfig;
 use crate::game::matchmaking::MatchmakingActor;
 use crate::game::ws::PlayerWsActor;
