@@ -1,14 +1,14 @@
 use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
 
 use crate::auth::middleware::AuthenticatedUser;
+use crate::db::Database;
 use crate::errors::AppError;
 use crate::models::user::{PlatformStats, User};
 
 // Helper to check admin access
-async fn require_admin(pool: &SqlitePool, user_id: &str) -> Result<(), AppError> {
-    if !User::is_admin(pool, user_id).await? {
+async fn require_admin(db: &Database, user_id: &str) -> Result<(), AppError> {
+    if !User::is_admin(db, user_id).await? {
         return Err(AppError::Unauthorized("Admin access required".into()));
     }
     Ok(())
@@ -50,22 +50,22 @@ pub struct BanUserRequest {
 }
 
 pub async fn get_stats(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     auth: AuthenticatedUser,
 ) -> Result<HttpResponse, AppError> {
-    require_admin(&pool, &auth.user_id).await?;
+    require_admin(&db, &auth.user_id).await?;
 
-    let stats = User::get_platform_stats(&pool).await?;
+    let stats = User::get_platform_stats(&db).await?;
 
     Ok(HttpResponse::Ok().json(AdminStatsResponse { stats }))
 }
 
 pub async fn list_users(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     auth: AuthenticatedUser,
     query: web::Query<ListUsersQuery>,
 ) -> Result<HttpResponse, AppError> {
-    require_admin(&pool, &auth.user_id).await?;
+    require_admin(&db, &auth.user_id).await?;
 
     let page = query.page.unwrap_or(1).max(1);
     let limit = query.limit.unwrap_or(20).min(100).max(1);
@@ -74,8 +74,8 @@ pub async fn list_users(
     let search = query.search.as_deref();
     let sort_by = query.sort_by.as_deref();
 
-    let users = User::list_with_filters(&pool, search, sort_by, offset, limit).await?;
-    let total = User::count_all(&pool, search).await?;
+    let users = User::list_with_filters(&db, search, sort_by, offset, limit).await?;
+    let total = User::count_all(&db, search).await?;
 
     Ok(HttpResponse::Ok().json(AdminUsersResponse {
         users,
@@ -86,12 +86,12 @@ pub async fn list_users(
 }
 
 pub async fn update_user(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     auth: AuthenticatedUser,
     user_id: web::Path<String>,
     body: web::Json<UpdateUserRequest>,
 ) -> Result<HttpResponse, AppError> {
-    require_admin(&pool, &auth.user_id).await?;
+    require_admin(&db, &auth.user_id).await?;
 
     // Prevent editing self
     if &auth.user_id == user_id.as_str() {
@@ -99,7 +99,7 @@ pub async fn update_user(
     }
 
     // Prevent editing other admins
-    let target_user = User::find_by_id(&pool, &user_id)
+    let target_user = User::find_by_id(&db, &user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
@@ -149,7 +149,7 @@ pub async fn update_user(
     }
 
     User::update_stats(
-        &pool,
+        &db,
         &user_id,
         body.username.as_deref(),
         body.elo,
@@ -159,7 +159,7 @@ pub async fn update_user(
     )
     .await?;
 
-    let updated_user = User::find_by_id(&pool, &user_id)
+    let updated_user = User::find_by_id(&db, &user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
@@ -167,12 +167,12 @@ pub async fn update_user(
 }
 
 pub async fn ban_user(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     auth: AuthenticatedUser,
     user_id: web::Path<String>,
     body: web::Json<BanUserRequest>,
 ) -> Result<HttpResponse, AppError> {
-    require_admin(&pool, &auth.user_id).await?;
+    require_admin(&db, &auth.user_id).await?;
 
     // Prevent banning self
     if &auth.user_id == user_id.as_str() {
@@ -180,7 +180,7 @@ pub async fn ban_user(
     }
 
     // Prevent banning other admins
-    let target_user = User::find_by_id(&pool, &user_id)
+    let target_user = User::find_by_id(&db, &user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
@@ -198,7 +198,7 @@ pub async fn ban_user(
         ));
     }
 
-    User::ban(&pool, &user_id, &body.reason).await?;
+    User::ban(&db, &user_id, &body.reason).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "User banned successfully"
@@ -206,13 +206,13 @@ pub async fn ban_user(
 }
 
 pub async fn unban_user(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     auth: AuthenticatedUser,
     user_id: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    require_admin(&pool, &auth.user_id).await?;
+    require_admin(&db, &auth.user_id).await?;
 
-    let target_user = User::find_by_id(&pool, &user_id)
+    let target_user = User::find_by_id(&db, &user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
@@ -220,7 +220,7 @@ pub async fn unban_user(
         return Err(AppError::BadRequest("User is not banned".into()));
     }
 
-    User::unban(&pool, &user_id).await?;
+    User::unban(&db, &user_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "User unbanned successfully"
@@ -228,11 +228,11 @@ pub async fn unban_user(
 }
 
 pub async fn delete_user(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     auth: AuthenticatedUser,
     user_id: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
-    require_admin(&pool, &auth.user_id).await?;
+    require_admin(&db, &auth.user_id).await?;
 
     // Prevent deleting self
     if &auth.user_id == user_id.as_str() {
@@ -240,7 +240,7 @@ pub async fn delete_user(
     }
 
     // Prevent deleting other admins
-    let target_user = User::find_by_id(&pool, &user_id)
+    let target_user = User::find_by_id(&db, &user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
@@ -248,7 +248,7 @@ pub async fn delete_user(
         return Err(AppError::BadRequest("Cannot delete admin accounts".into()));
     }
 
-    User::delete(&pool, &user_id).await?;
+    User::delete(&db, &user_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "User deleted successfully"

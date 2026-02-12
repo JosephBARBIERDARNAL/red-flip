@@ -1,4 +1,4 @@
-name: Check Rust tests and format
+name: Backend CI
 
 on:
   push:

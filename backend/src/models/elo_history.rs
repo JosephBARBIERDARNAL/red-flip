@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
 use uuid::Uuid;
 
+use crate::db::Database;
 use crate::errors::AppError;
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EloHistory {
     pub id: String,
     pub user_id: String,
@@ -17,7 +17,7 @@ pub struct EloHistory {
 
 impl EloHistory {
     pub async fn create(
-        pool: &SqlitePool,
+        db: &Database,
         user_id: &str,
         match_id: &str,
         elo_before: i32,
@@ -25,17 +25,14 @@ impl EloHistory {
     ) -> Result<Self, AppError> {
         let id = Uuid::new_v4().to_string();
         let elo_change = elo_after - elo_before;
-        sqlx::query(
-            "INSERT INTO elo_history (id, user_id, match_id, elo_before, elo_after, elo_change) VALUES (?, ?, ?, ?, ?, ?)",
+        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+
+        conn.execute(
+            "INSERT INTO elo_history (id, user_id, match_id, elo_before, elo_after, elo_change) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            (id.clone(), user_id.to_string(), match_id.to_string(), elo_before, elo_after, elo_change),
         )
-        .bind(&id)
-        .bind(user_id)
-        .bind(match_id)
-        .bind(elo_before)
-        .bind(elo_after)
-        .bind(elo_change)
-        .execute(pool)
-        .await?;
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(Self {
             id,

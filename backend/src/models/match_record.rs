@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
 use uuid::Uuid;
+use libsql::Row;
 
+use crate::db::Database;
 use crate::errors::AppError;
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchRecord {
     pub id: String,
     pub player1_id: String,
@@ -32,8 +33,28 @@ pub struct Round {
 }
 
 impl MatchRecord {
+    fn from_row(row: &Row) -> Result<Self, AppError> {
+        Ok(MatchRecord {
+            id: row.get::<String>(0).map_err(|e| AppError::Internal(e.to_string()))?,
+            player1_id: row.get::<String>(1).map_err(|e| AppError::Internal(e.to_string()))?,
+            player2_id: row.get::<String>(2).map_err(|e| AppError::Internal(e.to_string()))?,
+            winner_id: row.get::<Option<String>>(3).map_err(|e| AppError::Internal(e.to_string()))?,
+            is_ranked: row.get::<i32>(4).map_err(|e| AppError::Internal(e.to_string()))? != 0,
+            player1_score: row.get::<i32>(5).map_err(|e| AppError::Internal(e.to_string()))?,
+            player2_score: row.get::<i32>(6).map_err(|e| AppError::Internal(e.to_string()))?,
+            rounds_json: row.get::<String>(7).map_err(|e| AppError::Internal(e.to_string()))?,
+            player1_elo_before: row.get::<Option<i32>>(8).map_err(|e| AppError::Internal(e.to_string()))?,
+            player1_elo_after: row.get::<Option<i32>>(9).map_err(|e| AppError::Internal(e.to_string()))?,
+            player2_elo_before: row.get::<Option<i32>>(10).map_err(|e| AppError::Internal(e.to_string()))?,
+            player2_elo_after: row.get::<Option<i32>>(11).map_err(|e| AppError::Internal(e.to_string()))?,
+            status: row.get::<String>(12).map_err(|e| AppError::Internal(e.to_string()))?,
+            created_at: row.get::<String>(13).map_err(|e| AppError::Internal(e.to_string()))?,
+            finished_at: row.get::<Option<String>>(14).map_err(|e| AppError::Internal(e.to_string()))?,
+        })
+    }
+
     pub async fn create(
-        pool: &SqlitePool,
+        db: &Database,
         player1_id: &str,
         player2_id: &str,
         is_ranked: bool,
@@ -41,33 +62,36 @@ impl MatchRecord {
         p2_elo: i32,
     ) -> Result<Self, AppError> {
         let id = Uuid::new_v4().to_string();
-        sqlx::query(
-            "INSERT INTO matches (id, player1_id, player2_id, is_ranked, player1_elo_before, player2_elo_before) VALUES (?, ?, ?, ?, ?, ?)",
-        )
-        .bind(&id)
-        .bind(player1_id)
-        .bind(player2_id)
-        .bind(is_ranked)
-        .bind(p1_elo)
-        .bind(p2_elo)
-        .execute(pool)
-        .await?;
+        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
 
-        Self::find_by_id(pool, &id)
+        conn.execute(
+            "INSERT INTO matches (id, player1_id, player2_id, is_ranked, player1_elo_before, player2_elo_before) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            (id.clone(), player1_id.to_string(), player2_id.to_string(), is_ranked as i32, p1_elo, p2_elo),
+        )
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        Self::find_by_id(db, &id)
             .await?
             .ok_or_else(|| AppError::Internal("Failed to fetch created match".into()))
     }
 
-    pub async fn find_by_id(pool: &SqlitePool, id: &str) -> Result<Option<Self>, AppError> {
-        let m = sqlx::query_as::<_, Self>("SELECT * FROM matches WHERE id = ?")
-            .bind(id)
-            .fetch_optional(pool)
-            .await?;
-        Ok(m)
+    pub async fn find_by_id(db: &Database, id: &str) -> Result<Option<Self>, AppError> {
+        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let mut rows = conn
+            .query("SELECT * FROM matches WHERE id = ?1", [id])
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        match rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+            Some(row) => Ok(Some(Self::from_row(&row)?)),
+            None => Ok(None),
+        }
     }
 
     pub async fn finish(
-        pool: &SqlitePool,
+        db: &Database,
         match_id: &str,
         winner_id: Option<&str>,
         p1_score: i32,
@@ -77,35 +101,38 @@ impl MatchRecord {
         p2_elo_after: i32,
         status: &str,
     ) -> Result<(), AppError> {
-        sqlx::query(
-            "UPDATE matches SET winner_id = ?, player1_score = ?, player2_score = ?, rounds_json = ?, player1_elo_after = ?, player2_elo_after = ?, status = ?, finished_at = datetime('now') WHERE id = ?",
+        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+
+        conn.execute(
+            "UPDATE matches SET winner_id = ?1, player1_score = ?2, player2_score = ?3, rounds_json = ?4, player1_elo_after = ?5, player2_elo_after = ?6, status = ?7, finished_at = datetime('now') WHERE id = ?8",
+            (winner_id.map(|s| s.to_string()), p1_score, p2_score, rounds_json.to_string(), p1_elo_after, p2_elo_after, status.to_string(), match_id.to_string()),
         )
-        .bind(winner_id)
-        .bind(p1_score)
-        .bind(p2_score)
-        .bind(rounds_json)
-        .bind(p1_elo_after)
-        .bind(p2_elo_after)
-        .bind(status)
-        .bind(match_id)
-        .execute(pool)
-        .await?;
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
         Ok(())
     }
 
     pub async fn recent_for_user(
-        pool: &SqlitePool,
+        db: &Database,
         user_id: &str,
         limit: i32,
     ) -> Result<Vec<Self>, AppError> {
-        let matches = sqlx::query_as::<_, Self>(
-            "SELECT * FROM matches WHERE (player1_id = ? OR player2_id = ?) AND status != 'in_progress' ORDER BY finished_at DESC LIMIT ?",
-        )
-        .bind(user_id)
-        .bind(user_id)
-        .bind(limit)
-        .fetch_all(pool)
-        .await?;
+        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let mut rows = conn
+            .query(
+                "SELECT * FROM matches WHERE (player1_id = ?1 OR player2_id = ?1) AND status != 'in_progress' ORDER BY finished_at DESC LIMIT ?2",
+                [user_id, &limit.to_string()],
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let mut matches = Vec::new();
+        while let Some(row) = rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+            matches.push(Self::from_row(&row)?);
+        }
+
         Ok(matches)
     }
 }

@@ -1,10 +1,10 @@
 use actix_web::{web, HttpResponse};
 use serde::Deserialize;
-use sqlx::SqlitePool;
 
 use crate::auth::jwt::create_token;
 use crate::auth::middleware::AuthenticatedUser;
 use crate::config::AppConfig;
+use crate::db::Database;
 use crate::errors::AppError;
 use crate::models::user::{PublicUser, User};
 
@@ -22,7 +22,7 @@ pub struct LoginRequest {
 }
 
 pub async fn register(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     config: web::Data<AppConfig>,
     body: web::Json<RegisterRequest>,
 ) -> Result<HttpResponse, AppError> {
@@ -38,7 +38,7 @@ pub async fn register(
     }
 
     let password_hash = bcrypt::hash(&body.password, 10)?;
-    let user = User::create(&pool, &body.username, &body.email, &password_hash).await?;
+    let user = User::create(&db, &body.username, &body.email, &password_hash).await?;
     let token = create_token(&user.id, &config.jwt_secret)?;
 
     Ok(HttpResponse::Created().json(serde_json::json!({
@@ -48,11 +48,11 @@ pub async fn register(
 }
 
 pub async fn login(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     config: web::Data<AppConfig>,
     body: web::Json<LoginRequest>,
 ) -> Result<HttpResponse, AppError> {
-    let user = User::find_by_email(&pool, &body.email)
+    let user = User::find_by_email(&db, &body.email)
         .await?
         .ok_or_else(|| AppError::Unauthorized("Invalid email or password".into()))?;
 
@@ -80,10 +80,10 @@ pub async fn login(
 }
 
 pub async fn me(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     auth: AuthenticatedUser,
 ) -> Result<HttpResponse, AppError> {
-    let user = User::find_by_id(&pool, &auth.user_id)
+    let user = User::find_by_id(&db, &auth.user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 

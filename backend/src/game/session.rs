@@ -1,7 +1,7 @@
 use actix::prelude::*;
-use sqlx::SqlitePool;
 use std::time::Duration;
 
+use crate::db::Database;
 use crate::game::elo::calculate_elo;
 use crate::game::ws::{PlayerWsActor, SendServerMessage, ServerMessage};
 use crate::models::elo_history::EloHistory;
@@ -27,7 +27,7 @@ pub struct GameSessionActor {
     current_round: i32,
     rounds: Vec<Round>,
     is_ranked: bool,
-    pool: SqlitePool,
+    db: Database,
     finished: bool,
 }
 
@@ -42,7 +42,7 @@ impl GameSessionActor {
         p2_elo: i32,
         p2_addr: Addr<PlayerWsActor>,
         is_ranked: bool,
-        pool: SqlitePool,
+        db: Database,
     ) -> Self {
         Self {
             p1_id,
@@ -60,7 +60,7 @@ impl GameSessionActor {
             current_round: 1,
             rounds: Vec::new(),
             is_ranked,
-            pool,
+            db,
             finished: false,
         }
     }
@@ -177,7 +177,7 @@ impl GameSessionActor {
         };
 
         // Calculate and persist Elo + match
-        let pool = self.pool.clone();
+        let db = self.db.clone();
         let p1_id = self.p1_id.clone();
         let p2_id = self.p2_id.clone();
         let p1_elo = self.p1_elo;
@@ -196,13 +196,13 @@ impl GameSessionActor {
         actix::spawn(async move {
             let (new_p1_elo, new_p2_elo) = if is_ranked {
                 // Fetch current game counts
-                let p1_games = User::find_by_id(&pool, &p1_id)
+                let p1_games = User::find_by_id(&db, &p1_id)
                     .await
                     .ok()
                     .flatten()
                     .map(|u| u.total_games)
                     .unwrap_or(0);
-                let p2_games = User::find_by_id(&pool, &p2_id)
+                let p2_games = User::find_by_id(&db, &p2_id)
                     .await
                     .ok()
                     .flatten()
@@ -216,10 +216,10 @@ impl GameSessionActor {
 
             // Create match record
             if let Ok(m) =
-                MatchRecord::create(&pool, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
+                MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
             {
                 let _ = MatchRecord::finish(
-                    &pool,
+                    &db,
                     &m.id,
                     winner_clone.as_deref(),
                     p1_score,
@@ -232,10 +232,10 @@ impl GameSessionActor {
                 .await;
 
                 if is_ranked {
-                    let _ = User::update_elo(&pool, &p1_id, new_p1_elo).await;
-                    let _ = User::update_elo(&pool, &p2_id, new_p2_elo).await;
-                    let _ = EloHistory::create(&pool, &p1_id, &m.id, p1_elo, new_p1_elo).await;
-                    let _ = EloHistory::create(&pool, &p2_id, &m.id, p2_elo, new_p2_elo).await;
+                    let _ = User::update_elo(&db, &p1_id, new_p1_elo).await;
+                    let _ = User::update_elo(&db, &p2_id, new_p2_elo).await;
+                    let _ = EloHistory::create(&db, &p1_id, &m.id, p1_elo, new_p1_elo).await;
+                    let _ = EloHistory::create(&db, &p2_id, &m.id, p2_elo, new_p2_elo).await;
                 }
 
                 // Update win/loss/draw stats
@@ -246,8 +246,8 @@ impl GameSessionActor {
                 } else {
                     None
                 };
-                let _ = User::increment_stats(&pool, &p1_id, p1_won).await;
-                let _ = User::increment_stats(&pool, &p2_id, p1_won.map(|w| !w)).await;
+                let _ = User::increment_stats(&db, &p1_id, p1_won).await;
+                let _ = User::increment_stats(&db, &p2_id, p1_won.map(|w| !w)).await;
             }
 
             let p1_elo_change = if is_ranked {
@@ -296,7 +296,7 @@ impl GameSessionActor {
         winner_addr.do_send(SendServerMessage(ServerMessage::OpponentDisconnected));
 
         // Record as forfeit (loser gets full loss Elo penalty)
-        let pool = self.pool.clone();
+        let db = self.db.clone();
         let p1_id = self.p1_id.clone();
         let p2_id = self.p2_id.clone();
         let p1_elo = self.p1_elo;
@@ -313,13 +313,13 @@ impl GameSessionActor {
             let outcome = if loser_is_p1 { 0.0 } else { 1.0 };
 
             let (new_p1_elo, new_p2_elo) = if is_ranked {
-                let p1_games = User::find_by_id(&pool, &p1_id)
+                let p1_games = User::find_by_id(&db, &p1_id)
                     .await
                     .ok()
                     .flatten()
                     .map(|u| u.total_games)
                     .unwrap_or(0);
-                let p2_games = User::find_by_id(&pool, &p2_id)
+                let p2_games = User::find_by_id(&db, &p2_id)
                     .await
                     .ok()
                     .flatten()
@@ -334,10 +334,10 @@ impl GameSessionActor {
             let (p1_score, p2_score) = if loser_is_p1 { (0, 2) } else { (2, 0) };
 
             if let Ok(m) =
-                MatchRecord::create(&pool, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
+                MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
             {
                 let _ = MatchRecord::finish(
-                    &pool,
+                    &db,
                     &m.id,
                     Some(winner_id),
                     p1_score,
@@ -350,15 +350,15 @@ impl GameSessionActor {
                 .await;
 
                 if is_ranked {
-                    let _ = User::update_elo(&pool, &p1_id, new_p1_elo).await;
-                    let _ = User::update_elo(&pool, &p2_id, new_p2_elo).await;
-                    let _ = EloHistory::create(&pool, &p1_id, &m.id, p1_elo, new_p1_elo).await;
-                    let _ = EloHistory::create(&pool, &p2_id, &m.id, p2_elo, new_p2_elo).await;
+                    let _ = User::update_elo(&db, &p1_id, new_p1_elo).await;
+                    let _ = User::update_elo(&db, &p2_id, new_p2_elo).await;
+                    let _ = EloHistory::create(&db, &p1_id, &m.id, p1_elo, new_p1_elo).await;
+                    let _ = EloHistory::create(&db, &p2_id, &m.id, p2_elo, new_p2_elo).await;
                 }
 
                 let p1_won = !loser_is_p1;
-                let _ = User::increment_stats(&pool, &p1_id, Some(p1_won)).await;
-                let _ = User::increment_stats(&pool, &p2_id, Some(!p1_won)).await;
+                let _ = User::increment_stats(&db, &p1_id, Some(p1_won)).await;
+                let _ = User::increment_stats(&db, &p2_id, Some(!p1_won)).await;
             }
 
             // Notify winner

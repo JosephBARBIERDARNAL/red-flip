@@ -42,12 +42,6 @@ impl ResponseError for AppError {
     }
 }
 
-impl From<sqlx::Error> for AppError {
-    fn from(err: sqlx::Error) -> Self {
-        AppError::Internal(err.to_string())
-    }
-}
-
 impl From<bcrypt::BcryptError> for AppError {
     fn from(err: bcrypt::BcryptError) -> Self {
         AppError::Internal(err.to_string())

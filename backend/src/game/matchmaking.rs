@@ -1,6 +1,6 @@
 use actix::prelude::*;
-use sqlx::SqlitePool;
 
+use crate::db::Database;
 use crate::game::session::GameSessionActor;
 use crate::game::ws::{OpponentInfo, PlayerWsActor, SendServerMessage, ServerMessage, SetSession};
 
@@ -16,14 +16,14 @@ struct QueuedPlayer {
 /// Singleton matchmaking actor
 pub struct MatchmakingActor {
     queue: Vec<QueuedPlayer>,
-    pool: SqlitePool,
+    db: Database,
 }
 
 impl MatchmakingActor {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(db: Database) -> Self {
         Self {
             queue: Vec::new(),
-            pool,
+            db,
         }
     }
 }
@@ -129,7 +129,7 @@ impl MatchmakingActor {
             p2.elo,
             p2.addr.clone(),
             is_ranked,
-            self.pool.clone(),
+            self.db.clone(),
         );
 
         let session_addr = session.start();

@@ -1,0 +1,45 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+
+    # This sets the base directory for all 'run' commands in this job
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          # Caching dependencies speeds up future runs
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting (Prettier)
+        # Ensure you have a 'format:check' or similar script in package.json
+        # Common: "prettier --check ."
+        run: npm run format:check || npx prettier --check .
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Build Next.js app
+        run: npm run build
+        env:
+          # Treats warnings as errors to ensure a clean build
+          CI: true

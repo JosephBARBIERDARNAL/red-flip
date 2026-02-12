@@ -1,11 +1,11 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use sqlx::SqlitePool;
 
 use crate::api::{admin, dashboard, leaderboard, user};
 use crate::auth::middleware::extract_user_from_query;
 use crate::auth::{google, handlers};
 use crate::config::AppConfig;
+use crate::db::Database;
 use crate::game::matchmaking::MatchmakingActor;
 use crate::game::ws::PlayerWsActor;
 use crate::models::user::User;
@@ -46,7 +46,7 @@ async fn health() -> HttpResponse {
 async fn ws_handler(
     req: HttpRequest,
     stream: web::Payload,
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     config: web::Data<AppConfig>,
     matchmaking: web::Data<actix::Addr<MatchmakingActor>>,
 ) -> Result<HttpResponse, actix_web::Error> {
@@ -54,7 +54,7 @@ async fn ws_handler(
     let user_id = extract_user_from_query(query, &config.jwt_secret)
         .map_err(|_| actix_web::error::ErrorUnauthorized("Invalid token"))?;
 
-    let user = User::find_by_id(&pool, &user_id)
+    let user = User::find_by_id(&db, &user_id)
         .await
         .map_err(|_| actix_web::error::ErrorInternalServerError("DB error"))?
         .ok_or_else(|| actix_web::error::ErrorNotFound("User not found"))?;

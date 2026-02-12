@@ -1,9 +1,9 @@
 use actix_web::{web, HttpResponse};
 use serde::Deserialize;
-use sqlx::SqlitePool;
 
 use crate::auth::jwt::create_token;
 use crate::config::AppConfig;
+use crate::db::Database;
 use crate::errors::AppError;
 use crate::models::user::User;
 
@@ -46,7 +46,7 @@ pub async fn google_login(config: web::Data<AppConfig>) -> Result<HttpResponse, 
 }
 
 pub async fn google_callback(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     config: web::Data<AppConfig>,
     query: web::Query<GoogleCallbackQuery>,
 ) -> Result<HttpResponse, AppError> {
@@ -94,9 +94,9 @@ pub async fn google_callback(
         .map_err(|e| AppError::Internal(format!("Failed to parse Google user info: {e}")))?;
 
     // Find or create user
-    let user = if let Some(user) = User::find_by_google_id(&pool, &user_info.id).await? {
+    let user = if let Some(user) = User::find_by_google_id(&db, &user_info.id).await? {
         user
-    } else if let Some(user) = User::find_by_email(&pool, &user_info.email).await? {
+    } else if let Some(user) = User::find_by_email(&db, &user_info.email).await? {
         // Link Google account to existing user (could extend this)
         user
     } else {
@@ -114,7 +114,7 @@ pub async fn google_callback(
         };
 
         User::create_from_google(
-            &pool,
+            &db,
             &username,
             &user_info.email,
             &user_info.id,

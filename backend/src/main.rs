@@ -23,7 +23,7 @@ async fn main() -> std::io::Result<()> {
     let port = config.backend_port;
     let frontend_url = config.frontend_url.clone();
 
-    let pool = db::init_pool(&config.database_url).await;
+    let pool = db::init_pool(&config.database_url, config.database_auth_token.as_deref()).await;
     db::run_migrations(&pool).await;
 
     let matchmaking = MatchmakingActor::new(pool.clone()).start();

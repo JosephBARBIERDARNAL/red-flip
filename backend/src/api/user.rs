@@ -1,16 +1,16 @@
 use actix_web::{web, HttpResponse};
-use sqlx::SqlitePool;
 
 use crate::auth::middleware::AuthenticatedUser;
+use crate::db::Database;
 use crate::errors::AppError;
 use crate::models::user::{PublicUser, User};
 
 pub async fn get_user(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     path: web::Path<String>,
 ) -> Result<HttpResponse, AppError> {
     let user_id = path.into_inner();
-    let user = User::find_by_id(&pool, &user_id)
+    let user = User::find_by_id(&db, &user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
@@ -20,16 +20,16 @@ pub async fn get_user(
 }
 
 pub async fn delete_account(
-    pool: web::Data<SqlitePool>,
+    db: web::Data<Database>,
     auth_user: AuthenticatedUser,
 ) -> Result<HttpResponse, AppError> {
     // Verify the user exists before deleting
-    User::find_by_id(&pool, &auth_user.user_id)
+    User::find_by_id(&db, &auth_user.user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
     // Delete the user and all related data
-    User::delete(&pool, &auth_user.user_id).await?;
+    User::delete(&db, &auth_user.user_id).await?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": "Account deleted successfully",
