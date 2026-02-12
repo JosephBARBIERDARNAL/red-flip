@@ -35,24 +35,31 @@ export default function AdminPage() {
   useEffect(() => {
     if (!user?.is_admin) return;
 
-    setLoading(true);
-    Promise.all([
-      api.get<AdminStatsResponse>("/api/admin/stats"),
-      api.get<AdminUsersResponse>(
-        `/api/admin/users?search=${search}&sort_by=${sortBy}&page=${page}&limit=20`,
-      ),
-    ])
-      .then(([statsRes, usersRes]) => {
+    const fetchAdminData = async () => {
+      setLoading(true);
+      try {
+        const [statsRes, usersRes] = await Promise.all([
+          api.get<AdminStatsResponse>("/api/admin/stats"),
+          api.get<AdminUsersResponse>(
+            `/api/admin/users?search=${search}&sort_by=${sortBy}&page=${page}&limit=20`,
+          ),
+        ]);
         setStats(statsRes);
         setUsersData(usersRes);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Failed to fetch admin data:", err);
-        if (err.message.includes("401") || err.message.includes("Admin")) {
+        if (
+          err instanceof Error &&
+          (err.message.includes("401") || err.message.includes("Admin"))
+        ) {
           router.push("/dashboard");
         }
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchAdminData();
   }, [user, search, sortBy, page, router]);
 
   const handleRefreshUsers = () => {

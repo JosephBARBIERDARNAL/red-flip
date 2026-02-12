@@ -12,6 +12,7 @@ import {
   faChevronLeft,
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
+import Image from "next/image";
 
 interface UserManagementTableProps {
   users: User[];
@@ -153,7 +154,7 @@ export default function UserManagementTable({
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center">
                     {user.avatar_url && (
-                      <img
+                      <Image
                         src={user.avatar_url}
                         alt={user.username}
                         className="h-8 w-8 rounded-full mr-2"
@@ -170,7 +171,7 @@ export default function UserManagementTable({
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-brand-600">
-                  {(user as any).email || "N/A"}
+                  {user.email || "N/A"}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-brand-900">
                   {user.elo}

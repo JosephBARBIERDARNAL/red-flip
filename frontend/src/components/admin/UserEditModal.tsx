@@ -57,8 +57,8 @@ export default function UserEditModal({
 
       await api.put(`/api/admin/users/${user.id}`, updates);
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || "Failed to update user");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update user");
     } finally {
       setLoading(false);
     }

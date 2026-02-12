@@ -5,6 +5,7 @@ A real-time multiplayer Rock-Paper-Scissors game with competitive Elo rankings, 
 ## Overview
 
 Red Flip is a competitive Rock-Paper-Scissors platform featuring:
+
 - **Real-time multiplayer** with WebSocket-based gameplay
 - **Elo ranking system** with adaptive K-factors for fair competitive play
 - **Live matchmaking** via actor-based queue system
@@ -15,6 +16,7 @@ Red Flip is a competitive Rock-Paper-Scissors platform featuring:
 ## Tech Stack
 
 ### Backend
+
 - **Rust** - High-performance, memory-safe game server
 - **Actix-Web** - Async web framework with actor-based concurrency
 - **Actix Actors** - Actor system for matchmaking and game sessions
@@ -24,6 +26,7 @@ Red Flip is a competitive Rock-Paper-Scissors platform featuring:
 - **bcrypt** - Password hashing
 
 ### Frontend
+
 - **Next.js 16** (App Router) - React framework with server components
 - **TypeScript** - Type-safe development
 - **Tailwind CSS 4** - Utility-first styling
@@ -31,6 +34,7 @@ Red Flip is a competitive Rock-Paper-Scissors platform featuring:
 - **Native WebSocket API** - Real-time game communication
 
 ### Infrastructure
+
 - **GitHub Actions** - CI/CD for automated testing and deployment
 - **Just** - Command runner for development tasks
 
@@ -90,6 +94,7 @@ The backend uses an **actor-based architecture** with Actix for concurrent game 
 ### Database Schema
 
 **users** table:
+
 ```sql
 - id (TEXT, PK) - UUID v4
 - username (TEXT, UNIQUE)
@@ -106,6 +111,7 @@ The backend uses an **actor-based architecture** with Actix for concurrent game 
 ```
 
 **matches** table:
+
 ```sql
 - id (TEXT, PK) - UUID v4
 - player1_id/player2_id (TEXT, FK to users)
@@ -120,6 +126,7 @@ The backend uses an **actor-based architecture** with Actix for concurrent game 
 ```
 
 **elo_history** table:
+
 ```sql
 - id (TEXT, PK) - UUID v4
 - user_id (TEXT, FK to users)
@@ -134,24 +141,29 @@ The backend uses an **actor-based architecture** with Actix for concurrent game 
 Implementation: `backend/src/game/elo.rs`
 
 **K-Factor Calculation:**
+
 - **K=40** for new players (< 30 total games) - rapid rating adjustment
 - **K=20** for standard players (30+ games, < 2400 Elo)
 - **K=10** for masters (2400+ Elo) - rating stability
 
 **Expected Score Formula:**
+
 ```
 E = 1 / (1 + 10^((opponent_elo - player_elo) / 400))
 ```
 
 **Rating Update:**
+
 ```
 new_elo = current_elo + K * (actual_score - expected_score)
 ```
+
 Where `actual_score` is 1.0 (win), 0.5 (draw), or 0.0 (loss)
 
 ### WebSocket Protocol
 
 **Client → Server Messages:**
+
 ```typescript
 {type: "join_queue", ranked: boolean}    // Enter matchmaking
 {type: "leave_queue"}                    // Exit matchmaking
@@ -159,6 +171,7 @@ Where `actual_score` is 1.0 (win), 0.5 (draw), or 0.0 (loss)
 ```
 
 **Server → Client Messages:**
+
 ```typescript
 {type: "queued"}                         // Entered queue
 {type: "match_found", session_id, opponent: {username, elo}}
@@ -173,6 +186,7 @@ Where `actual_score` is 1.0 (win), 0.5 (draw), or 0.0 (loss)
 ### Frontend Architecture
 
 Next.js App Router structure:
+
 ```
 frontend/src/
 ├── app/
@@ -200,6 +214,7 @@ frontend/src/
 ```
 
 **Real-time Game Flow:**
+
 1. User navigates to `/play` → opens WebSocket connection with JWT
 2. Sends `join_queue` message
 3. Server responds with `queued` → shows "Finding opponent..."
@@ -214,6 +229,7 @@ frontend/src/
 ## Authentication
 
 ### JWT Token Flow
+
 1. User logs in via `/auth/login` or `/auth/register`
 2. Server validates credentials, returns JWT containing `user_id`, `username`, `elo`, `is_admin`
 3. Frontend stores JWT in `AuthContext` (React Context + localStorage)
@@ -221,6 +237,7 @@ frontend/src/
 5. WebSocket connection authenticates via `?token=<jwt>` query parameter
 
 ### Google OAuth Flow
+
 1. User clicks "Sign in with Google" → redirects to `/auth/google`
 2. Server redirects to Google OAuth consent screen
 3. Google redirects back to `/auth/google/callback?code=<code>`
@@ -244,6 +261,7 @@ Implementation: `backend/src/auth/google.rs`
 ## API Endpoints
 
 ### Authentication
+
 - `POST /auth/register` - Create new account
   - Body: `{username, email, password}`
   - Returns: `{token, user}`
@@ -257,6 +275,7 @@ Implementation: `backend/src/auth/google.rs`
 - `GET /auth/google/callback` - OAuth callback handler
 
 ### Public API
+
 - `GET /api/health` - Health check
 - `GET /api/leaderboard?limit=10&offset=0` - Top players by Elo
   - Returns: `[{rank, user_id, username, elo, wins, losses, total_games}]`
@@ -264,16 +283,19 @@ Implementation: `backend/src/auth/google.rs`
   - Returns: `{id, username, elo, total_games, wins, losses, draws, created_at}`
 
 ### Protected API (requires JWT)
+
 - `GET /api/dashboard` - User stats + recent 10 matches
   - Returns: `{user, recent_matches: [{...match_details}]}`
 
 ### Admin API (requires `is_admin=true`)
+
 - `GET /api/admin/users` - List all users with pagination
 - `GET /api/admin/stats` - Platform statistics
 - `PUT /api/admin/users/:id` - Update user (ban, promote to admin, etc.)
 - `DELETE /api/admin/users/:id` - Delete user account
 
 ### WebSocket
+
 - `GET /ws?token=<jwt>` - Upgrade to WebSocket connection
   - Requires valid JWT in query parameter
   - Returns 101 Switching Protocols
@@ -281,6 +303,7 @@ Implementation: `backend/src/auth/google.rs`
 ## Setup
 
 ### Prerequisites
+
 - **Rust** 1.70+ (with Cargo)
 - **Node.js** 20+ (with npm)
 - **Turso CLI** (or any libSQL-compatible database)
@@ -351,12 +374,14 @@ The database schema is automatically migrated on server startup via embedded SQL
 ### GitHub Actions Workflows
 
 **Backend CI** (`.github/workflows/backend.yml`):
+
 - Runs on every push and PR
 - Format check with `cargo fmt`
 - Debug build with all features
 - Release build (optimized)
 
 **Frontend CI** (`.github/workflows/frontend.yml`):
+
 - Runs on every push and PR
 - Linting with ESLint
 - TypeScript type checking
@@ -410,18 +435,21 @@ cd frontend && npx tsc --noEmit
 ## Deployment
 
 ### Backend Deployment
+
 1. Set production environment variables
 2. Build release binary: `cargo build --release`
 3. Binary location: `target/release/red-flip`
 4. Run with: `./target/release/red-flip`
 
 ### Frontend Deployment
+
 1. Set `NEXT_PUBLIC_BACKEND_URL` to production backend URL
 2. Build: `npm run build`
 3. Deploy `.next` directory to hosting provider (Vercel, Netlify, etc.)
 4. Or run with: `npm start` (production server)
 
 ### Database
+
 - Turso automatically handles scaling and replication
 - Connection pooling managed by libSQL client
 - Migrations run automatically on server startup
@@ -433,20 +461,3 @@ cd frontend && npx tsc --noEmit
 - **Database Queries**: Indexed on `elo`, `created_at`, `user_id` for fast leaderboard/history
 - **Concurrent Games**: Tested with 100+ simultaneous matches
 - **Actor Overhead**: ~2KB per active game session
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make changes and test thoroughly
-4. Run formatters: `cargo fmt` (Rust), `npm run lint` (TypeScript)
-5. Commit with descriptive messages
-6. Push and create a Pull Request
-
-## License
-
-[Add your license here]
-
-## Acknowledgments
-
-Built with modern web technologies for competitive, real-time gameplay.
