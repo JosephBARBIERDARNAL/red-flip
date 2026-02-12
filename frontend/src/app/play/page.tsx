@@ -21,10 +21,7 @@ export default function PlayPage() {
   const { user, token, loading } = useAuth();
   const isGuest = !user && !loading;
   // Only allow guest connection when auth loading is complete
-  const { connected, send, addMessageHandler } = useWebSocket(
-    token,
-    isGuest
-  );
+  const { connected, send, addMessageHandler } = useWebSocket(token, isGuest);
   const game = useGameState({ send, addMessageHandler });
 
   if (loading) {
