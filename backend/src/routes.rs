@@ -3,7 +3,7 @@ use actix_web_actors::ws;
 
 use crate::api::{admin, dashboard, leaderboard, user};
 use crate::auth::handlers;
-use crate::auth::middleware::extract_user_from_query;
+use crate::auth::middleware::extract_optional_user_from_query;
 use crate::config::AppConfig;
 use crate::db::Database;
 use crate::game::matchmaking::MatchmakingActor;
@@ -49,18 +49,28 @@ async fn ws_handler(
     matchmaking: web::Data<actix::Addr<MatchmakingActor>>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let query = req.query_string();
-    let user_id = extract_user_from_query(query, &config.jwt_secret)
-        .map_err(|_| actix_web::error::ErrorUnauthorized("Invalid token"))?;
+    let user_id_opt = extract_optional_user_from_query(query, &config.jwt_secret);
 
-    let user = User::find_by_id(&db, &user_id)
-        .await
-        .map_err(|_| actix_web::error::ErrorInternalServerError("DB error"))?
-        .ok_or_else(|| actix_web::error::ErrorNotFound("User not found"))?;
+    let (user_id, username, elo, is_guest) = if let Some(uid) = user_id_opt {
+        // Authenticated user
+        let user = User::find_by_id(&db, &uid)
+            .await
+            .map_err(|_| actix_web::error::ErrorInternalServerError("DB error"))?
+            .ok_or_else(|| actix_web::error::ErrorNotFound("User not found"))?;
+
+        (user.id, user.username, user.elo, false)
+    } else {
+        // Guest user
+        let guest_id = format!("guest_{}", uuid::Uuid::new_v4());
+        let guest_name = format!("Guest{}", &guest_id[6..10]);
+        (guest_id, guest_name, 1000, true)
+    };
 
     let actor = PlayerWsActor::new(
-        user.id,
-        user.username,
-        user.elo,
+        user_id,
+        username,
+        elo,
+        is_guest,
         matchmaking.get_ref().clone(),
     );
 

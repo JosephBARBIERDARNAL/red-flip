@@ -10,6 +10,7 @@ struct QueuedPlayer {
     username: String,
     elo: i32,
     ranked: bool,
+    is_guest: bool,
     addr: Addr<PlayerWsActor>,
 }
 
@@ -43,6 +44,7 @@ pub struct JoinQueue {
     pub username: String,
     pub elo: i32,
     pub ranked: bool,
+    pub is_guest: bool,
     pub addr: Addr<PlayerWsActor>,
 }
 
@@ -72,6 +74,7 @@ impl Handler<JoinQueue> for MatchmakingActor {
             username: msg.username,
             elo: msg.elo,
             ranked: msg.ranked,
+            is_guest: msg.is_guest,
             addr: msg.addr,
         });
 
@@ -123,10 +126,12 @@ impl MatchmakingActor {
             p1.user_id.clone(),
             p1.username.clone(),
             p1.elo,
+            p1.is_guest,
             p1.addr.clone(),
             p2.user_id.clone(),
             p2.username.clone(),
             p2.elo,
+            p2.is_guest,
             p2.addr.clone(),
             is_ranked,
             self.db.clone(),

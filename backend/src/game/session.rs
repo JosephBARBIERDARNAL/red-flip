@@ -15,11 +15,13 @@ pub struct GameSessionActor {
     p1_id: String,
     p1_username: String,
     p1_elo: i32,
+    p1_is_guest: bool,
     p1_addr: Addr<PlayerWsActor>,
     p1_choice: Option<String>,
     p2_id: String,
     p2_username: String,
     p2_elo: i32,
+    p2_is_guest: bool,
     p2_addr: Addr<PlayerWsActor>,
     p2_choice: Option<String>,
     p1_score: i32,
@@ -36,10 +38,12 @@ impl GameSessionActor {
         p1_id: String,
         p1_username: String,
         p1_elo: i32,
+        p1_is_guest: bool,
         p1_addr: Addr<PlayerWsActor>,
         p2_id: String,
         p2_username: String,
         p2_elo: i32,
+        p2_is_guest: bool,
         p2_addr: Addr<PlayerWsActor>,
         is_ranked: bool,
         db: Database,
@@ -48,11 +52,13 @@ impl GameSessionActor {
             p1_id,
             p1_username,
             p1_elo,
+            p1_is_guest,
             p1_addr,
             p1_choice: None,
             p2_id,
             p2_username,
             p2_elo,
+            p2_is_guest,
             p2_addr,
             p2_choice: None,
             p1_score: 0,
@@ -185,6 +191,8 @@ impl GameSessionActor {
         let p1_score = self.p1_score;
         let p2_score = self.p2_score;
         let is_ranked = self.is_ranked;
+        let p1_is_guest = self.p1_is_guest;
+        let p2_is_guest = self.p2_is_guest;
         let rounds_json = serde_json::to_string(&self.rounds).unwrap_or_else(|_| "[]".into());
         let p1_addr = self.p1_addr.clone();
         let p2_addr = self.p2_addr.clone();
@@ -194,7 +202,9 @@ impl GameSessionActor {
         let p2_outcome = p2_outcome.to_string();
 
         actix::spawn(async move {
-            let (new_p1_elo, new_p2_elo) = if is_ranked {
+            // Skip database operations if either player is a guest
+            let has_guest = p1_is_guest || p2_is_guest;
+            let (new_p1_elo, new_p2_elo) = if is_ranked && !has_guest {
                 // Fetch current game counts
                 let p1_games = User::find_by_id(&db, &p1_id)
                     .await
@@ -214,47 +224,50 @@ impl GameSessionActor {
                 (p1_elo, p2_elo)
             };
 
-            // Create match record
-            if let Ok(m) = MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
-            {
-                let _ = MatchRecord::finish(
-                    &db,
-                    &m.id,
-                    winner_clone.as_deref(),
-                    p1_score,
-                    p2_score,
-                    &rounds_json,
-                    new_p1_elo,
-                    new_p2_elo,
-                    "completed",
-                )
-                .await;
+            // Create match record (skip for guest players)
+            if !has_guest {
+                if let Ok(m) =
+                    MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
+                {
+                    let _ = MatchRecord::finish(
+                        &db,
+                        &m.id,
+                        winner_clone.as_deref(),
+                        p1_score,
+                        p2_score,
+                        &rounds_json,
+                        new_p1_elo,
+                        new_p2_elo,
+                        "completed",
+                    )
+                    .await;
 
-                if is_ranked {
-                    let _ = User::update_elo(&db, &p1_id, new_p1_elo).await;
-                    let _ = User::update_elo(&db, &p2_id, new_p2_elo).await;
-                    let _ = EloHistory::create(&db, &p1_id, &m.id, p1_elo, new_p1_elo).await;
-                    let _ = EloHistory::create(&db, &p2_id, &m.id, p2_elo, new_p2_elo).await;
+                    if is_ranked {
+                        let _ = User::update_elo(&db, &p1_id, new_p1_elo).await;
+                        let _ = User::update_elo(&db, &p2_id, new_p2_elo).await;
+                        let _ = EloHistory::create(&db, &p1_id, &m.id, p1_elo, new_p1_elo).await;
+                        let _ = EloHistory::create(&db, &p2_id, &m.id, p2_elo, new_p2_elo).await;
+                    }
+
+                    // Update win/loss/draw stats
+                    let p1_won = if p1_score > p2_score {
+                        Some(true)
+                    } else if p1_score < p2_score {
+                        Some(false)
+                    } else {
+                        None
+                    };
+                    let _ = User::increment_stats(&db, &p1_id, p1_won).await;
+                    let _ = User::increment_stats(&db, &p2_id, p1_won.map(|w| !w)).await;
                 }
-
-                // Update win/loss/draw stats
-                let p1_won = if p1_score > p2_score {
-                    Some(true)
-                } else if p1_score < p2_score {
-                    Some(false)
-                } else {
-                    None
-                };
-                let _ = User::increment_stats(&db, &p1_id, p1_won).await;
-                let _ = User::increment_stats(&db, &p2_id, p1_won.map(|w| !w)).await;
             }
 
-            let p1_elo_change = if is_ranked {
+            let p1_elo_change = if is_ranked && !has_guest {
                 Some(new_p1_elo - p1_elo)
             } else {
                 None
             };
-            let p2_elo_change = if is_ranked {
+            let p2_elo_change = if is_ranked && !has_guest {
                 Some(new_p2_elo - p2_elo)
             } else {
                 None
@@ -265,7 +278,11 @@ impl GameSessionActor {
                 your_score: p1_score,
                 opponent_score: p2_score,
                 elo_change: p1_elo_change,
-                new_elo: if is_ranked { Some(new_p1_elo) } else { None },
+                new_elo: if is_ranked && !has_guest {
+                    Some(new_p1_elo)
+                } else {
+                    None
+                },
             }));
 
             p2_addr.do_send(SendServerMessage(ServerMessage::MatchComplete {
@@ -273,7 +290,11 @@ impl GameSessionActor {
                 your_score: p2_score,
                 opponent_score: p1_score,
                 elo_change: p2_elo_change,
-                new_elo: if is_ranked { Some(new_p2_elo) } else { None },
+                new_elo: if is_ranked && !has_guest {
+                    Some(new_p2_elo)
+                } else {
+                    None
+                },
             }));
         });
 
@@ -300,6 +321,8 @@ impl GameSessionActor {
         let p2_id = self.p2_id.clone();
         let p1_elo = self.p1_elo;
         let p2_elo = self.p2_elo;
+        let p1_is_guest = self.p1_is_guest;
+        let p2_is_guest = self.p2_is_guest;
         let is_ranked = self.is_ranked;
         let loser_is_p1 = disconnected_user_id == self.p1_id;
         let rounds_json = serde_json::to_string(&self.rounds).unwrap_or_else(|_| "[]".into());
@@ -309,9 +332,10 @@ impl GameSessionActor {
         let _loser_id = loser_id.clone();
 
         actix::spawn(async move {
+            let has_guest = p1_is_guest || p2_is_guest;
             let outcome = if loser_is_p1 { 0.0 } else { 1.0 };
 
-            let (new_p1_elo, new_p2_elo) = if is_ranked {
+            let (new_p1_elo, new_p2_elo) = if is_ranked && !has_guest {
                 let p1_games = User::find_by_id(&db, &p1_id)
                     .await
                     .ok()
@@ -332,31 +356,34 @@ impl GameSessionActor {
             let winner_id = if loser_is_p1 { &p2_id } else { &p1_id };
             let (p1_score, p2_score) = if loser_is_p1 { (0, 2) } else { (2, 0) };
 
-            if let Ok(m) = MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
-            {
-                let _ = MatchRecord::finish(
-                    &db,
-                    &m.id,
-                    Some(winner_id),
-                    p1_score,
-                    p2_score,
-                    &rounds_json,
-                    new_p1_elo,
-                    new_p2_elo,
-                    "forfeit",
-                )
-                .await;
+            if !has_guest {
+                if let Ok(m) =
+                    MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
+                {
+                    let _ = MatchRecord::finish(
+                        &db,
+                        &m.id,
+                        Some(winner_id),
+                        p1_score,
+                        p2_score,
+                        &rounds_json,
+                        new_p1_elo,
+                        new_p2_elo,
+                        "forfeit",
+                    )
+                    .await;
 
-                if is_ranked {
-                    let _ = User::update_elo(&db, &p1_id, new_p1_elo).await;
-                    let _ = User::update_elo(&db, &p2_id, new_p2_elo).await;
-                    let _ = EloHistory::create(&db, &p1_id, &m.id, p1_elo, new_p1_elo).await;
-                    let _ = EloHistory::create(&db, &p2_id, &m.id, p2_elo, new_p2_elo).await;
+                    if is_ranked {
+                        let _ = User::update_elo(&db, &p1_id, new_p1_elo).await;
+                        let _ = User::update_elo(&db, &p2_id, new_p2_elo).await;
+                        let _ = EloHistory::create(&db, &p1_id, &m.id, p1_elo, new_p1_elo).await;
+                        let _ = EloHistory::create(&db, &p2_id, &m.id, p2_elo, new_p2_elo).await;
+                    }
+
+                    let p1_won = !loser_is_p1;
+                    let _ = User::increment_stats(&db, &p1_id, Some(p1_won)).await;
+                    let _ = User::increment_stats(&db, &p2_id, Some(!p1_won)).await;
                 }
-
-                let p1_won = !loser_is_p1;
-                let _ = User::increment_stats(&db, &p1_id, Some(p1_won)).await;
-                let _ = User::increment_stats(&db, &p2_id, Some(!p1_won)).await;
             }
 
             // Notify winner
@@ -373,12 +400,12 @@ impl GameSessionActor {
                 result: "win".into(),
                 your_score: winner_score,
                 opponent_score: loser_score,
-                elo_change: if is_ranked {
+                elo_change: if is_ranked && !has_guest {
                     Some(winner_new_elo - winner_old_elo)
                 } else {
                     None
                 },
-                new_elo: if is_ranked {
+                new_elo: if is_ranked && !has_guest {
                     Some(winner_new_elo)
                 } else {
                     None

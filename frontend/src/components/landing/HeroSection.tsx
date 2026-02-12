@@ -25,7 +25,7 @@ export default function HeroSection() {
         </p>
         <div className="flex justify-center gap-4">
           <Link
-            href="/register"
+            href="/play"
             className="px-6 py-3 bg-white text-brand-700 font-bold rounded-lg hover:bg-brand-50 transition-colors"
           >
             Play Now

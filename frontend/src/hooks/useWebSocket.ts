@@ -5,7 +5,7 @@ import { createGameSocket } from "@/lib/ws";
 
 type MessageHandler = (data: Record<string, unknown>) => void;
 
-export function useWebSocket(token: string | null) {
+export function useWebSocket(token: string | null, allowGuest = false) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const handlersRef = useRef<MessageHandler[]>([]);
@@ -24,7 +24,8 @@ export function useWebSocket(token: string | null) {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
+    // Allow connection without token in guest mode
+    if (!token && !allowGuest) return;
 
     const ws = createGameSocket(token);
     wsRef.current = ws;
@@ -47,7 +48,7 @@ export function useWebSocket(token: string | null) {
       wsRef.current = null;
       setConnected(false);
     };
-  }, [token]);
+  }, [token, allowGuest]);
 
   return { connected, send, addMessageHandler };
 }

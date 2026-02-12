@@ -75,6 +75,7 @@ pub struct PlayerWsActor {
     pub user_id: String,
     pub username: String,
     pub elo: i32,
+    pub is_guest: bool,
     pub hb: Instant,
     pub matchmaking: Addr<MatchmakingActor>,
     pub session: Option<Addr<GameSessionActor>>,
@@ -85,12 +86,14 @@ impl PlayerWsActor {
         user_id: String,
         username: String,
         elo: i32,
+        is_guest: bool,
         matchmaking: Addr<MatchmakingActor>,
     ) -> Self {
         Self {
             user_id,
             username,
             elo,
+            is_guest,
             hb: Instant::now(),
             matchmaking,
             session: None,
@@ -184,12 +187,18 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerWsActor {
                 let parsed: Result<ClientMessage, _> = serde_json::from_str(&text);
                 match parsed {
                     Ok(ClientMessage::JoinQueue { ranked }) => {
-                        let ranked = ranked.unwrap_or(true);
+                        // Guest users can only play unranked
+                        let ranked = if self.is_guest {
+                            false
+                        } else {
+                            ranked.unwrap_or(true)
+                        };
                         self.matchmaking.do_send(JoinQueue {
                             user_id: self.user_id.clone(),
                             username: self.username.clone(),
                             elo: self.elo,
                             ranked,
+                            is_guest: self.is_guest,
                             addr: ctx.address(),
                         });
                     }

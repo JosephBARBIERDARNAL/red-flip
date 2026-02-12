@@ -76,6 +76,13 @@ export default function Header() {
           ) : (
             <>
               <Link
+                href="/play"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-brand-500 hover:bg-brand-400 transition-colors text-sm font-medium"
+              >
+                <FontAwesomeIcon icon={faGamepad} />
+                Play
+              </Link>
+              <Link
                 href="/leaderboard"
                 className="flex items-center gap-1.5 hover:text-brand-200 transition-colors text-sm"
               >
@@ -90,7 +97,7 @@ export default function Header() {
               </Link>
               <Link
                 href="/register"
-                className="px-3 py-1.5 rounded bg-brand-500 hover:bg-brand-400 transition-colors text-sm font-medium"
+                className="px-3 py-1.5 rounded bg-white text-brand-700 hover:bg-gray-100 transition-colors text-sm font-medium"
               >
                 Sign Up
               </Link>

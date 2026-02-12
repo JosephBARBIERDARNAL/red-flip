@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -10,6 +9,7 @@ import MatchmakingQueue from "@/components/game/MatchmakingQueue";
 import GameBoard from "@/components/game/GameBoard";
 import RoundResultDisplay from "@/components/game/RoundResultDisplay";
 import MatchResultDisplay from "@/components/game/MatchResultDisplay";
+import GuestBanner from "@/components/game/GuestBanner";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSpinner,
@@ -17,16 +17,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function PlayPage() {
-  const { user, token, loading } = useAuth();
   const router = useRouter();
-  const { connected, send, addMessageHandler } = useWebSocket(token);
+  const { user, token, loading } = useAuth();
+  const isGuest = !user && !loading;
+  const { connected, send, addMessageHandler } = useWebSocket(token, true);
   const game = useGameState({ send, addMessageHandler });
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -39,8 +34,6 @@ export default function PlayPage() {
       </div>
     );
   }
-
-  if (!user) return null;
 
   if (!connected) {
     return (
@@ -75,8 +68,13 @@ export default function PlayPage() {
 
   return (
     <div className="py-8 px-4">
+      {isGuest && <GuestBanner />}
+
       {game.status === "idle" && (
-        <ModeSelector onSelect={(ranked) => game.joinQueue(ranked)} />
+        <ModeSelector
+          onSelect={(ranked) => game.joinQueue(ranked)}
+          isGuest={isGuest}
+        />
       )}
 
       {game.status === "queued" && (

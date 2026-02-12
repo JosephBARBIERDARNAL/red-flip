@@ -57,3 +57,19 @@ pub fn extract_user_from_query(query: &str, secret: &str) -> Result<String, AppE
     let claims = validate_token(&token, secret)?;
     Ok(claims.sub)
 }
+
+/// Extract optional user_id from query parameter (supports guest mode)
+pub fn extract_optional_user_from_query(query: &str, secret: &str) -> Option<String> {
+    let token = query.split('&').find_map(|pair| {
+        let mut parts = pair.splitn(2, '=');
+        let key = parts.next()?;
+        let value = parts.next()?;
+        if key == "token" && !value.is_empty() {
+            Some(value.to_string())
+        } else {
+            None
+        }
+    })?;
+
+    validate_token(&token, secret).ok().map(|claims| claims.sub)
+}
