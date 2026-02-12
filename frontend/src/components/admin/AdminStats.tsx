@@ -14,11 +14,7 @@ interface AdminStatsProps {
 export default function AdminStats({ stats }: AdminStatsProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <StatsCard
-        icon={faUsers}
-        label="Total Users"
-        value={stats.total_users}
-      />
+      <StatsCard icon={faUsers} label="Total Users" value={stats.total_users} />
       <StatsCard
         icon={faUserCheck}
         label="Active Users"

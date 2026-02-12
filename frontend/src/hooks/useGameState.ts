@@ -12,7 +12,7 @@ import {
 interface UseGameStateProps {
   send: (msg: Record<string, unknown>) => void;
   addMessageHandler: (
-    handler: (data: Record<string, unknown>) => void
+    handler: (data: Record<string, unknown>) => void,
   ) => () => void;
 }
 
@@ -94,7 +94,7 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
     (ranked = true) => {
       send({ type: "join_queue", ranked });
     },
-    [send]
+    [send],
   );
 
   const leaveQueue = useCallback(() => {
@@ -108,7 +108,7 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
       setMyChoice(choice);
       send({ type: "choice", choice });
     },
-    [send, myChoice]
+    [send, myChoice],
   );
 
   const resetGame = useCallback(() => {

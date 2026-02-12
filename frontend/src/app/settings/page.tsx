@@ -41,7 +41,11 @@ export default function SettingsPage() {
   if (authLoading) {
     return (
       <div className="flex justify-center py-20">
-        <FontAwesomeIcon icon={faSpinner} spin className="text-brand-600 text-3xl" />
+        <FontAwesomeIcon
+          icon={faSpinner}
+          spin
+          className="text-brand-600 text-3xl"
+        />
       </div>
     );
   }
@@ -79,8 +83,9 @@ export default function SettingsPage() {
           Danger Zone
         </h2>
         <p className="text-gray-700 mb-4">
-          Once you delete your account, there is no going back. This will permanently
-          delete your account, including all your match history and statistics.
+          Once you delete your account, there is no going back. This will
+          permanently delete your account, including all your match history and
+          statistics.
         </p>
         <button
           onClick={() => setShowDeleteModal(true)}
@@ -105,9 +110,9 @@ export default function SettingsPage() {
             </div>
 
             <p className="text-gray-700 mb-6">
-              Are you absolutely sure you want to delete your account? This action cannot
-              be undone. All your data, including match history, statistics, and Elo
-              rating will be permanently deleted.
+              Are you absolutely sure you want to delete your account? This
+              action cannot be undone. All your data, including match history,
+              statistics, and Elo rating will be permanently deleted.
             </p>
 
             {error && (

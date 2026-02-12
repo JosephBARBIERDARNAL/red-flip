@@ -241,8 +241,8 @@ export default function UserManagementTable({
       {totalPages > 1 && (
         <div className="px-4 py-3 border-t border-brand-200 flex items-center justify-between">
           <div className="text-sm text-brand-600">
-            Showing {(page - 1) * limit + 1} to{" "}
-            {Math.min(page * limit, total)} of {total} users
+            Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)}{" "}
+            of {total} users
           </div>
           <div className="flex gap-2">
             <button

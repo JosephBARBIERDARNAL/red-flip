@@ -11,7 +11,10 @@ import GameBoard from "@/components/game/GameBoard";
 import RoundResultDisplay from "@/components/game/RoundResultDisplay";
 import MatchResultDisplay from "@/components/game/MatchResultDisplay";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSpinner, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
+import {
+  faSpinner,
+  faExclamationTriangle,
+} from "@fortawesome/free-solid-svg-icons";
 
 export default function PlayPage() {
   const { user, token, loading } = useAuth();
@@ -28,7 +31,11 @@ export default function PlayPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <FontAwesomeIcon icon={faSpinner} spin className="text-brand-600 text-3xl" />
+        <FontAwesomeIcon
+          icon={faSpinner}
+          spin
+          className="text-brand-600 text-3xl"
+        />
       </div>
     );
   }
@@ -38,7 +45,11 @@ export default function PlayPage() {
   if (!connected) {
     return (
       <div className="text-center py-20">
-        <FontAwesomeIcon icon={faSpinner} spin className="text-brand-600 text-3xl mb-4" />
+        <FontAwesomeIcon
+          icon={faSpinner}
+          spin
+          className="text-brand-600 text-3xl mb-4"
+        />
         <p className="text-gray-600">Connecting to game server...</p>
       </div>
     );
@@ -47,7 +58,10 @@ export default function PlayPage() {
   if (game.error) {
     return (
       <div className="max-w-lg mx-auto text-center py-20 px-4">
-        <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500 text-3xl mb-4" />
+        <FontAwesomeIcon
+          icon={faExclamationTriangle}
+          className="text-yellow-500 text-3xl mb-4"
+        />
         <p className="text-gray-800 font-medium mb-4">{game.error}</p>
         <button
           onClick={game.resetGame}

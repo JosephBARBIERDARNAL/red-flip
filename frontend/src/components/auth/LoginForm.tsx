@@ -45,7 +45,10 @@ export default function LoginForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Email
           </label>
           <input
@@ -58,7 +61,10 @@ export default function LoginForm() {
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Password
           </label>
           <input
@@ -75,11 +81,7 @@ export default function LoginForm() {
           disabled={loading}
           className="w-full py-2.5 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-500 transition-colors disabled:opacity-50 cursor-pointer"
         >
-          {loading ? (
-            <FontAwesomeIcon icon={faSpinner} spin />
-          ) : (
-            "Log In"
-          )}
+          {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Log In"}
         </button>
       </form>
 

@@ -2,7 +2,12 @@ export type Choice = "rock" | "paper" | "scissors";
 
 export type GameResult = "win" | "loss" | "draw";
 
-export type GameStatus = "idle" | "queued" | "playing" | "round_result" | "match_complete";
+export type GameStatus =
+  | "idle"
+  | "queued"
+  | "playing"
+  | "round_result"
+  | "match_complete";
 
 export interface OpponentInfo {
   username: string;
