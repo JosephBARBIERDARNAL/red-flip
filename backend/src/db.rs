@@ -4,20 +4,11 @@ use std::sync::Arc;
 pub type Database = Arc<libsql::Database>;
 
 pub async fn init_pool(database_url: &str, auth_token: Option<&str>) -> Database {
-    let db = if database_url.starts_with("libsql://") || database_url.starts_with("https://") {
-        // Remote Turso database
-        let token = auth_token.expect("AUTH_TOKEN required for remote database");
-        Builder::new_remote(database_url.to_string(), token.to_string())
-            .build()
-            .await
-            .expect("Failed to connect to remote database")
-    } else {
-        // Local SQLite file
-        Builder::new_local(database_url.strip_prefix("sqlite:").unwrap_or(database_url))
-            .build()
-            .await
-            .expect("Failed to create local database")
-    };
+    let token = auth_token.expect("AUTH_TOKEN required for remote database");
+    let db = Builder::new_remote(database_url.to_string(), token.to_string())
+        .build()
+        .await
+        .expect("Failed to connect to remote database");
 
     Arc::new(db)
 }
@@ -41,9 +32,21 @@ pub async fn run_migrations(db: &Database) {
             .collect();
 
         for statement in statements {
-            conn.execute(statement, ())
-                .await
-                .expect(&format!("Failed to run migration statement: {}", statement));
+            match conn.execute(statement, ()).await {
+                Ok(_) => {}
+                Err(e) => {
+                    let err_str = e.to_string();
+                    // Ignore errors for already existing tables/columns/indexes (idempotent migrations)
+                    if err_str.contains("already exists") || err_str.contains("duplicate column") {
+                        log::debug!("Skipping migration (already applied): {}", statement);
+                    } else {
+                        panic!(
+                            "Failed to run migration statement: {}\nError: {}",
+                            statement, err_str
+                        );
+                    }
+                }
+            }
         }
     }
 

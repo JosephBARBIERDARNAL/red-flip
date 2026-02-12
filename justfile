@@ -14,7 +14,3 @@ front:
     cd frontend && npm run build
 
 build: back front
-
-setup:
-    cd backend && cp ../.env.example .env
-    cd frontend && npm install
