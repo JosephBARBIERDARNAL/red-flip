@@ -10,7 +10,7 @@ Red Flip is a competitive Rock-Paper-Scissors platform featuring:
 - **Elo ranking system** with adaptive K-factors for fair competitive play
 - **Live matchmaking** via actor-based queue system
 - **Comprehensive statistics** tracking wins, losses, match history, and Elo progression
-- **OAuth authentication** supporting Google Sign-In and traditional email/password
+- **OAuth authentication** traditional email/password
 - **Admin panel** for user management and platform oversight
 
 ## Tech Stack
@@ -236,18 +236,6 @@ frontend/src/
 4. Protected API routes validate JWT via `auth::middleware::require_auth`
 5. WebSocket connection authenticates via `?token=<jwt>` query parameter
 
-### Google OAuth Flow
-
-1. User clicks "Sign in with Google" → redirects to `/auth/google`
-2. Server redirects to Google OAuth consent screen
-3. Google redirects back to `/auth/google/callback?code=<code>`
-4. Server exchanges code for Google access token
-5. Fetches user info from Google API
-6. Creates or updates user in database
-7. Issues JWT and redirects to frontend with token
-
-Implementation: `backend/src/auth/google.rs`
-
 ## Game Rules
 
 - **Match Format**: Best-of-3 (first player to win 2 rounds)
@@ -271,8 +259,6 @@ Implementation: `backend/src/auth/google.rs`
 - `GET /auth/me` - Get current user (requires auth)
   - Headers: `Authorization: Bearer <jwt>`
   - Returns: `{user}`
-- `GET /auth/google` - Initiate Google OAuth flow
-- `GET /auth/google/callback` - OAuth callback handler
 
 ### Public API
 
@@ -323,11 +309,6 @@ BACKEND_PORT=8080
 
 # Frontend
 FRONTEND_URL=http://localhost:3000
-
-# Google OAuth (optional)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:8080/auth/google/callback
 ```
 
 ### Development Setup

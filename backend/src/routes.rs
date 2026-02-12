@@ -2,8 +2,8 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 
 use crate::api::{admin, dashboard, leaderboard, user};
+use crate::auth::handlers;
 use crate::auth::middleware::extract_user_from_query;
-use crate::auth::{google, handlers};
 use crate::config::AppConfig;
 use crate::db::Database;
 use crate::game::matchmaking::MatchmakingActor;
@@ -32,9 +32,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         web::scope("/auth")
             .route("/register", web::post().to(handlers::register))
             .route("/login", web::post().to(handlers::login))
-            .route("/me", web::get().to(handlers::me))
-            .route("/google", web::get().to(google::google_login))
-            .route("/google/callback", web::get().to(google::google_callback)),
+            .route("/me", web::get().to(handlers::me)),
     )
     .route("/ws", web::get().to(ws_handler));
 }

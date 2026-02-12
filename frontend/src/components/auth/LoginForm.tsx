@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { API_BASE_URL } from "@/lib/constants";
 
 export default function LoginForm() {
   const { login } = useAuth();
@@ -84,15 +83,6 @@ export default function LoginForm() {
           {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Log In"}
         </button>
       </form>
-
-      <div className="mt-4">
-        <a
-          href={`${API_BASE_URL}/auth/google`}
-          className="block w-full py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-center"
-        >
-          Continue with Google
-        </a>
-      </div>
 
       <p className="mt-6 text-center text-sm text-gray-600">
         Don&apos;t have an account?{" "}
