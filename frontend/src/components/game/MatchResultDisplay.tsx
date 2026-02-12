@@ -1,7 +1,13 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrophy, faSkull, faHandshake, faArrowUp, faArrowDown } from "@fortawesome/free-solid-svg-icons";
+import {
+  faTrophy,
+  faSkull,
+  faHandshake,
+  faArrowUp,
+  faArrowDown,
+} from "@fortawesome/free-solid-svg-icons";
 import { MatchResult } from "@/types/game";
 
 interface MatchResultDisplayProps {
@@ -29,11 +35,7 @@ export default function MatchResultDisplay({
 
       <h2
         className={`font-serif text-4xl font-bold mb-2 ${
-          isWin
-            ? "text-green-600"
-            : isDraw
-            ? "text-gray-600"
-            : "text-red-600"
+          isWin ? "text-green-600" : isDraw ? "text-gray-600" : "text-red-600"
         }`}
       >
         {isWin ? "Victory!" : isDraw ? "Draw" : "Defeat"}
@@ -47,7 +49,11 @@ export default function MatchResultDisplay({
         <div className="mb-6">
           <p
             className={`text-lg font-medium ${
-              result.elo_change > 0 ? "text-green-600" : result.elo_change < 0 ? "text-red-600" : "text-gray-600"
+              result.elo_change > 0
+                ? "text-green-600"
+                : result.elo_change < 0
+                  ? "text-red-600"
+                  : "text-gray-600"
             }`}
           >
             <FontAwesomeIcon
@@ -58,7 +64,9 @@ export default function MatchResultDisplay({
             {result.elo_change} Elo
           </p>
           {result.new_elo !== null && (
-            <p className="text-sm text-gray-500">New rating: {result.new_elo}</p>
+            <p className="text-sm text-gray-500">
+              New rating: {result.new_elo}
+            </p>
           )}
         </div>
       )}

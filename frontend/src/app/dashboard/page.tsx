@@ -41,7 +41,11 @@ export default function DashboardPage() {
   if (authLoading || loading) {
     return (
       <div className="flex justify-center py-20">
-        <FontAwesomeIcon icon={faSpinner} spin className="text-brand-600 text-3xl" />
+        <FontAwesomeIcon
+          icon={faSpinner}
+          spin
+          className="text-brand-600 text-3xl"
+        />
       </div>
     );
   }
@@ -50,7 +54,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <h1 className="font-serif text-3xl font-bold text-brand-800 mb-8">
+      <h1 className="font-hand text-3xl font-bold text-brand-800 mb-8">
         Dashboard
       </h1>
 

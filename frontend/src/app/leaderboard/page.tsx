@@ -23,14 +23,18 @@ export default function LeaderboardPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <FontAwesomeIcon icon={faSpinner} spin className="text-brand-600 text-3xl" />
+        <FontAwesomeIcon
+          icon={faSpinner}
+          spin
+          className="text-brand-600 text-3xl"
+        />
       </div>
     );
   }
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
-      <h1 className="font-serif text-3xl font-bold text-brand-800 mb-8">
+      <h1 className="font-hand text-3xl font-bold text-brand-800 mb-8">
         Leaderboard
       </h1>
 

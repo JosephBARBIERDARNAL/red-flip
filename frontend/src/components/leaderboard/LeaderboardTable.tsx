@@ -33,13 +33,13 @@ export default function LeaderboardTable({ players }: LeaderboardTableProps) {
         </thead>
         <tbody>
           {players.map((player, i) => (
-            <tr key={player.id} className="border-b border-gray-50 hover:bg-brand-50 transition-colors">
+            <tr
+              key={player.id}
+              className="border-b border-gray-50 hover:bg-brand-50 transition-colors"
+            >
               <td className="py-3 px-4">
                 {i < 3 ? (
-                  <FontAwesomeIcon
-                    icon={faMedal}
-                    className={medalColors[i]}
-                  />
+                  <FontAwesomeIcon icon={faMedal} className={medalColors[i]} />
                 ) : (
                   <span className="text-gray-500 text-sm">{i + 1}</span>
                 )}

@@ -10,7 +10,7 @@ interface ModeSelectorProps {
 export default function ModeSelector({ onSelect }: ModeSelectorProps) {
   return (
     <div className="text-center py-8">
-      <h2 className="font-serif text-3xl font-bold text-brand-800 mb-8">
+      <h2 className="font-hand text-3xl font-bold text-brand-800 mb-8">
         Choose Game Mode
       </h2>
       <div className="flex justify-center gap-6">

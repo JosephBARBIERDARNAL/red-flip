@@ -1,7 +1,12 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHandRock, faHandPaper, faHandScissors, IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import {
+  faHandRock,
+  faHandPaper,
+  faHandScissors,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
 import { Choice } from "@/types/game";
 
 const choiceIcons: Record<Choice, IconDefinition> = {
@@ -37,8 +42,8 @@ export default function ChoiceButton({
         selected
           ? "border-brand-500 bg-brand-50 ring-2 ring-brand-300"
           : disabled
-          ? "border-gray-200 opacity-50 cursor-not-allowed"
-          : "border-gray-200 hover:border-brand-300 hover:bg-brand-50"
+            ? "border-gray-200 opacity-50 cursor-not-allowed"
+            : "border-gray-200 hover:border-brand-300 hover:bg-brand-50"
       }`}
     >
       <FontAwesomeIcon

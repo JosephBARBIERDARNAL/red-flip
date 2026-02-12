@@ -1,7 +1,13 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHandRock, faHandPaper, faHandScissors, faQuestion, IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import {
+  faHandRock,
+  faHandPaper,
+  faHandScissors,
+  faQuestion,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
 import { RoundResult } from "@/types/game";
 
 const choiceIcons: Record<string, IconDefinition> = {
@@ -14,20 +20,22 @@ interface RoundResultDisplayProps {
   result: RoundResult;
 }
 
-export default function RoundResultDisplay({ result }: RoundResultDisplayProps) {
+export default function RoundResultDisplay({
+  result,
+}: RoundResultDisplayProps) {
   const colorClass =
     result.winner === "you"
       ? "text-green-600"
       : result.winner === "opponent"
-      ? "text-red-600"
-      : "text-gray-600";
+        ? "text-red-600"
+        : "text-gray-600";
 
   const label =
     result.winner === "you"
       ? "You won the round!"
       : result.winner === "opponent"
-      ? "You lost the round"
-      : "Draw";
+        ? "You lost the round"
+        : "Draw";
 
   return (
     <div className="max-w-lg mx-auto text-center py-8">

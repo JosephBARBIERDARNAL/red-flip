@@ -20,7 +20,7 @@ interface AuthContextValue {
   register: (
     username: string,
     email: string,
-    password: string
+    password: string,
   ) => Promise<void>;
   logout: () => void;
 }
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (
     username: string,
     email: string,
-    password: string
+    password: string,
   ) => {
     const data = await api.post<AuthResponse>("/auth/register", {
       username,

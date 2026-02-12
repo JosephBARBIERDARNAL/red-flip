@@ -15,7 +15,7 @@ export default function MatchmakingQueue({ onCancel }: MatchmakingQueueProps) {
         spin
         className="text-brand-600 text-4xl mb-4"
       />
-      <h2 className="font-serif text-2xl font-bold text-brand-800 mb-2">
+      <h2 className="font-hand text-2xl font-bold text-brand-800 mb-2">
         Finding Opponent...
       </h2>
       <p className="text-gray-600 mb-6">Waiting for another player to join</p>

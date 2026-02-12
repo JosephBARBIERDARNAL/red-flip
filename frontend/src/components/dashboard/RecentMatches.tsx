@@ -1,6 +1,10 @@
 import { MatchRecord } from "@/types/game";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrophy, faSkull, faHandshake } from "@fortawesome/free-solid-svg-icons";
+import {
+  faTrophy,
+  faSkull,
+  faHandshake,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface RecentMatchesProps {
   matches: MatchRecord[];
@@ -48,8 +52,8 @@ export default function RecentMatches({ matches, userId }: RecentMatchesProps) {
                   won
                     ? "text-yellow-500"
                     : isDraw
-                    ? "text-gray-400"
-                    : "text-red-500"
+                      ? "text-gray-400"
+                      : "text-red-500"
                 }
               />
               <div>
@@ -70,7 +74,11 @@ export default function RecentMatches({ matches, userId }: RecentMatchesProps) {
               {eloChange !== null && (
                 <p
                   className={`text-xs ${
-                    eloChange > 0 ? "text-green-600" : eloChange < 0 ? "text-red-600" : "text-gray-500"
+                    eloChange > 0
+                      ? "text-green-600"
+                      : eloChange < 0
+                        ? "text-red-600"
+                        : "text-gray-500"
                   }`}
                 >
                   {eloChange > 0 ? "+" : ""}
