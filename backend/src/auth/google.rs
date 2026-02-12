@@ -123,6 +123,12 @@ pub async fn google_callback(
         .await?
     };
 
+    // Check if user is banned
+    if user.is_banned {
+        let reason = user.banned_reason.unwrap_or_else(|| "No reason provided".to_string());
+        return Err(AppError::Unauthorized(format!("Account banned: {}", reason)));
+    }
+
     let token = create_token(&user.id, &config.jwt_secret)?;
 
     // Redirect to frontend with token

@@ -56,6 +56,12 @@ pub async fn login(
         .await?
         .ok_or_else(|| AppError::Unauthorized("Invalid email or password".into()))?;
 
+    // Check if user is banned
+    if user.is_banned {
+        let reason = user.banned_reason.unwrap_or_else(|| "No reason provided".to_string());
+        return Err(AppError::Unauthorized(format!("Account banned: {}", reason)));
+    }
+
     let password_hash = user
         .password_hash
         .as_ref()

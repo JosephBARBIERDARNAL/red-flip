@@ -20,6 +20,10 @@ pub struct User {
     pub draws: i32,
     pub created_at: String,
     pub updated_at: String,
+    pub is_admin: bool,
+    pub is_banned: bool,
+    pub banned_at: Option<String>,
+    pub banned_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -32,6 +36,7 @@ pub struct PublicUser {
     pub wins: i32,
     pub losses: i32,
     pub draws: i32,
+    pub is_admin: bool,
 }
 
 impl From<User> for PublicUser {
@@ -45,6 +50,7 @@ impl From<User> for PublicUser {
             wins: u.wins,
             losses: u.losses,
             draws: u.draws,
+            is_admin: u.is_admin,
         }
     }
 }
@@ -194,4 +200,187 @@ impl User {
 
         Ok(())
     }
+
+    // Admin methods
+    pub async fn is_admin(pool: &SqlitePool, user_id: &str) -> Result<bool, AppError> {
+        let result = sqlx::query_scalar::<_, bool>("SELECT is_admin FROM users WHERE id = ?")
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
+        Ok(result.unwrap_or(false))
+    }
+
+    pub async fn list_with_filters(
+        pool: &SqlitePool,
+        search: Option<&str>,
+        sort_by: Option<&str>,
+        offset: i32,
+        limit: i32,
+    ) -> Result<Vec<Self>, AppError> {
+        let mut query = String::from("SELECT * FROM users WHERE 1=1");
+
+        if let Some(s) = search {
+            if !s.is_empty() {
+                query.push_str(" AND (username LIKE '%' || ? || '%' OR email LIKE '%' || ? || '%')");
+            }
+        }
+
+        let order = match sort_by {
+            Some("elo") => "elo DESC",
+            Some("created_at") => "created_at DESC",
+            Some("total_games") => "total_games DESC",
+            _ => "created_at DESC",
+        };
+
+        query.push_str(&format!(" ORDER BY {} LIMIT ? OFFSET ?", order));
+
+        let mut q = sqlx::query_as::<_, Self>(&query);
+
+        if let Some(s) = search {
+            if !s.is_empty() {
+                q = q.bind(s).bind(s);
+            }
+        }
+
+        let users = q.bind(limit).bind(offset).fetch_all(pool).await?;
+        Ok(users)
+    }
+
+    pub async fn count_all(pool: &SqlitePool, search: Option<&str>) -> Result<i64, AppError> {
+        let mut query = String::from("SELECT COUNT(*) FROM users WHERE 1=1");
+
+        if let Some(s) = search {
+            if !s.is_empty() {
+                query.push_str(" AND (username LIKE '%' || ? || '%' OR email LIKE '%' || ? || '%')");
+            }
+        }
+
+        let mut q = sqlx::query_scalar::<_, i64>(&query);
+
+        if let Some(s) = search {
+            if !s.is_empty() {
+                q = q.bind(s).bind(s);
+            }
+        }
+
+        let count = q.fetch_one(pool).await?;
+        Ok(count)
+    }
+
+    pub async fn ban(
+        pool: &SqlitePool,
+        user_id: &str,
+        reason: &str,
+    ) -> Result<(), AppError> {
+        sqlx::query(
+            "UPDATE users SET is_banned = 1, banned_at = datetime('now'), banned_reason = ?, updated_at = datetime('now') WHERE id = ?"
+        )
+        .bind(reason)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn unban(pool: &SqlitePool, user_id: &str) -> Result<(), AppError> {
+        sqlx::query(
+            "UPDATE users SET is_banned = 0, banned_at = NULL, banned_reason = NULL, updated_at = datetime('now') WHERE id = ?"
+        )
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn update_stats(
+        pool: &SqlitePool,
+        user_id: &str,
+        username: Option<&str>,
+        elo: Option<i32>,
+        wins: Option<i32>,
+        losses: Option<i32>,
+        draws: Option<i32>,
+    ) -> Result<(), AppError> {
+        let mut query = String::from("UPDATE users SET ");
+        let mut updates = Vec::new();
+        let mut bindings: Vec<String> = Vec::new();
+
+        if let Some(u) = username {
+            updates.push("username = ?");
+            bindings.push(u.to_string());
+        }
+        if let Some(e) = elo {
+            updates.push("elo = ?");
+            bindings.push(e.to_string());
+        }
+        if let Some(w) = wins {
+            updates.push("wins = ?");
+            bindings.push(w.to_string());
+        }
+        if let Some(l) = losses {
+            updates.push("losses = ?");
+            bindings.push(l.to_string());
+        }
+        if let Some(d) = draws {
+            updates.push("draws = ?");
+            bindings.push(d.to_string());
+        }
+
+        if updates.is_empty() {
+            return Ok(());
+        }
+
+        // Update total_games if any game stats are changed
+        if wins.is_some() || losses.is_some() || draws.is_some() {
+            updates.push("total_games = wins + losses + draws");
+        }
+
+        updates.push("updated_at = datetime('now')");
+        query.push_str(&updates.join(", "));
+        query.push_str(" WHERE id = ?");
+        bindings.push(user_id.to_string());
+
+        let mut q = sqlx::query(&query);
+        for binding in bindings {
+            q = q.bind(binding);
+        }
+
+        q.execute(pool).await?;
+        Ok(())
+    }
+
+    pub async fn get_platform_stats(pool: &SqlitePool) -> Result<PlatformStats, AppError> {
+        let total_users = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM users")
+            .fetch_one(pool)
+            .await?;
+
+        let active_users = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(DISTINCT user_id) FROM elo_history WHERE created_at > datetime('now', '-30 days')"
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let total_matches = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM matches")
+            .fetch_one(pool)
+            .await?;
+
+        let banned_users = sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM users WHERE is_banned = 1")
+            .fetch_one(pool)
+            .await?;
+
+        Ok(PlatformStats {
+            total_users,
+            active_users,
+            total_matches,
+            banned_users,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct PlatformStats {
+    pub total_users: i64,
+    pub active_users: i64,
+    pub total_matches: i64,
+    pub banned_users: i64,
 }

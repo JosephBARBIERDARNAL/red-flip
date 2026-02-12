@@ -7,4 +7,9 @@ export interface User {
   wins: number;
   losses: number;
   draws: number;
+  is_admin: boolean;
+  is_banned?: boolean;
+  banned_at?: string | null;
+  banned_reason?: string | null;
+  created_at?: string;
 }

@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use sqlx::SqlitePool;
 
-use crate::api::{dashboard, leaderboard, user};
+use crate::api::{admin, dashboard, leaderboard, user};
 use crate::auth::middleware::extract_user_from_query;
 use crate::auth::{google, handlers};
 use crate::config::AppConfig;
@@ -17,7 +17,16 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/leaderboard", web::get().to(leaderboard::get_leaderboard))
             .route("/dashboard", web::get().to(dashboard::get_dashboard))
             .route("/users/{id}", web::get().to(user::get_user))
-            .route("/account/delete", web::delete().to(user::delete_account)),
+            .route("/account/delete", web::delete().to(user::delete_account))
+            .service(
+                web::scope("/admin")
+                    .route("/stats", web::get().to(admin::get_stats))
+                    .route("/users", web::get().to(admin::list_users))
+                    .route("/users/{id}", web::put().to(admin::update_user))
+                    .route("/users/{id}/ban", web::post().to(admin::ban_user))
+                    .route("/users/{id}/unban", web::post().to(admin::unban_user))
+                    .route("/users/{id}", web::delete().to(admin::delete_user)),
+            ),
     )
     .service(
         web::scope("/auth")
