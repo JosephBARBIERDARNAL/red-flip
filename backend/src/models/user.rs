@@ -172,4 +172,26 @@ impl User {
             .await?;
         Ok(users)
     }
+
+    pub async fn delete(pool: &SqlitePool, user_id: &str) -> Result<(), AppError> {
+        // Delete related records first (cascade)
+        sqlx::query("DELETE FROM elo_history WHERE user_id = ?")
+            .bind(user_id)
+            .execute(pool)
+            .await?;
+
+        sqlx::query("DELETE FROM matches WHERE player1_id = ? OR player2_id = ?")
+            .bind(user_id)
+            .bind(user_id)
+            .execute(pool)
+            .await?;
+
+        // Finally delete the user
+        sqlx::query("DELETE FROM users WHERE id = ?")
+            .bind(user_id)
+            .execute(pool)
+            .await?;
+
+        Ok(())
+    }
 }

@@ -16,7 +16,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .route("/health", web::get().to(health))
             .route("/leaderboard", web::get().to(leaderboard::get_leaderboard))
             .route("/dashboard", web::get().to(dashboard::get_dashboard))
-            .route("/users/{id}", web::get().to(user::get_user)),
+            .route("/users/{id}", web::get().to(user::get_user))
+            .route("/account/delete", web::delete().to(user::delete_account)),
     )
     .service(
         web::scope("/auth")

@@ -9,6 +9,7 @@ import {
   faTrophy,
   faGamepad,
   faSignOutAlt,
+  faCog,
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function Header() {
@@ -45,6 +46,12 @@ export default function Header() {
               >
                 <FontAwesomeIcon icon={faUser} />
                 {user.username}
+              </Link>
+              <Link
+                href="/settings"
+                className="flex items-center gap-1.5 hover:text-brand-200 transition-colors text-sm"
+              >
+                <FontAwesomeIcon icon={faCog} />
               </Link>
               <button
                 onClick={logout}
