@@ -151,30 +151,6 @@ impl User {
             .ok_or_else(|| AppError::Internal("Failed to fetch created user".into()))
     }
 
-    pub async fn create_from_google(
-        db: &Database,
-        username: &str,
-        email: &str,
-        google_id: &str,
-        avatar_url: Option<&str>,
-    ) -> Result<Self, AppError> {
-        let id = Uuid::new_v4().to_string();
-        let conn = db
-            .connect()
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        conn.execute(
-            "INSERT INTO users (id, username, email, google_id, avatar_url) VALUES (?1, ?2, ?3, ?4, ?5)",
-            (id.clone(), username.to_string(), email.to_string(), google_id.to_string(), avatar_url.map(|s| s.to_string())),
-        )
-        .await
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        Self::find_by_id(db, &id)
-            .await?
-            .ok_or_else(|| AppError::Internal("Failed to fetch created user".into()))
-    }
-
     pub async fn find_by_id(db: &Database, id: &str) -> Result<Option<Self>, AppError> {
         let conn = db
             .connect()
@@ -202,29 +178,6 @@ impl User {
 
         let mut rows = conn
             .query("SELECT * FROM users WHERE email = ?1", [email])
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        match rows
-            .next()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?
-        {
-            Some(row) => Ok(Some(Self::from_row(&row)?)),
-            None => Ok(None),
-        }
-    }
-
-    pub async fn find_by_google_id(
-        db: &Database,
-        google_id: &str,
-    ) -> Result<Option<Self>, AppError> {
-        let conn = db
-            .connect()
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-
-        let mut rows = conn
-            .query("SELECT * FROM users WHERE google_id = ?1", [google_id])
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 

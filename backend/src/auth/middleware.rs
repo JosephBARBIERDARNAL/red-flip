@@ -38,26 +38,6 @@ fn extract_user(req: &HttpRequest) -> Result<AuthenticatedUser, AppError> {
     })
 }
 
-/// Extract user_id from a query parameter (used for WebSocket upgrade requests)
-pub fn extract_user_from_query(query: &str, secret: &str) -> Result<String, AppError> {
-    let token = query
-        .split('&')
-        .find_map(|pair| {
-            let mut parts = pair.splitn(2, '=');
-            let key = parts.next()?;
-            let value = parts.next()?;
-            if key == "token" {
-                Some(value.to_string())
-            } else {
-                None
-            }
-        })
-        .ok_or_else(|| AppError::Unauthorized("Missing token query parameter".into()))?;
-
-    let claims = validate_token(&token, secret)?;
-    Ok(claims.sub)
-}
-
 /// Extract optional user_id from query parameter (supports guest mode)
 pub fn extract_optional_user_from_query(query: &str, secret: &str) -> Option<String> {
     let token = query.split('&').find_map(|pair| {
