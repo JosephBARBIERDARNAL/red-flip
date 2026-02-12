@@ -24,7 +24,8 @@ export function useWebSocket(token: string | null, allowGuest = false) {
   }, []);
 
   useEffect(() => {
-    // Allow connection without token in guest mode
+    // Only connect if we have a token OR guest mode is explicitly enabled
+    // This prevents connection attempts during initial auth loading
     if (!token && !allowGuest) return;
 
     const ws = createGameSocket(token);
