@@ -114,10 +114,7 @@ pub async fn update_user(
                 "Username must be between 3 and 20 characters".into(),
             ));
         }
-        if !username
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '_')
-        {
+        if !username.chars().all(|c| c.is_alphanumeric() || c == '_') {
             return Err(AppError::BadRequest(
                 "Username can only contain alphanumeric characters and underscores".into(),
             ));
@@ -126,7 +123,9 @@ pub async fn update_user(
 
     if let Some(elo) = body.elo {
         if elo < 0 || elo > 5000 {
-            return Err(AppError::BadRequest("Elo must be between 0 and 5000".into()));
+            return Err(AppError::BadRequest(
+                "Elo must be between 0 and 5000".into(),
+            ));
         }
     }
 

@@ -215,8 +215,7 @@ impl GameSessionActor {
             };
 
             // Create match record
-            if let Ok(m) =
-                MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
+            if let Ok(m) = MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
             {
                 let _ = MatchRecord::finish(
                     &db,
@@ -333,8 +332,7 @@ impl GameSessionActor {
             let winner_id = if loser_is_p1 { &p2_id } else { &p1_id };
             let (p1_score, p2_score) = if loser_is_p1 { (0, 2) } else { (2, 0) };
 
-            if let Ok(m) =
-                MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
+            if let Ok(m) = MatchRecord::create(&db, &p1_id, &p2_id, is_ranked, p1_elo, p2_elo).await
             {
                 let _ = MatchRecord::finish(
                     &db,

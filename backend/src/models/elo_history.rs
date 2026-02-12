@@ -25,7 +25,9 @@ impl EloHistory {
     ) -> Result<Self, AppError> {
         let id = Uuid::new_v4().to_string();
         let elo_change = elo_after - elo_before;
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         conn.execute(
             "INSERT INTO elo_history (id, user_id, match_id, elo_before, elo_after, elo_change) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",

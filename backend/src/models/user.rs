@@ -1,6 +1,6 @@
+use libsql::Row;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use libsql::Row;
 
 use crate::db::Database;
 use crate::errors::AppError;
@@ -59,22 +59,56 @@ impl From<User> for PublicUser {
 impl User {
     fn from_row(row: &Row) -> Result<Self, AppError> {
         Ok(User {
-            id: row.get::<String>(0).map_err(|e| AppError::Internal(e.to_string()))?,
-            username: row.get::<String>(1).map_err(|e| AppError::Internal(e.to_string()))?,
-            email: row.get::<String>(2).map_err(|e| AppError::Internal(e.to_string()))?,
-            password_hash: row.get::<Option<String>>(3).map_err(|e| AppError::Internal(e.to_string()))?,
-            avatar_url: row.get::<Option<String>>(5).map_err(|e| AppError::Internal(e.to_string()))?,
-            elo: row.get::<i32>(6).map_err(|e| AppError::Internal(e.to_string()))?,
-            total_games: row.get::<i32>(7).map_err(|e| AppError::Internal(e.to_string()))?,
-            wins: row.get::<i32>(8).map_err(|e| AppError::Internal(e.to_string()))?,
-            losses: row.get::<i32>(9).map_err(|e| AppError::Internal(e.to_string()))?,
-            draws: row.get::<i32>(10).map_err(|e| AppError::Internal(e.to_string()))?,
-            created_at: row.get::<String>(11).map_err(|e| AppError::Internal(e.to_string()))?,
-            updated_at: row.get::<String>(12).map_err(|e| AppError::Internal(e.to_string()))?,
-            is_banned: row.get::<i32>(13).map_err(|e| AppError::Internal(e.to_string()))? != 0,
-            banned_at: row.get::<Option<String>>(14).map_err(|e| AppError::Internal(e.to_string()))?,
-            banned_reason: row.get::<Option<String>>(15).map_err(|e| AppError::Internal(e.to_string()))?,
-            is_admin: row.get::<i32>(16).map_err(|e| AppError::Internal(e.to_string()))? != 0,
+            id: row
+                .get::<String>(0)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            username: row
+                .get::<String>(1)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            email: row
+                .get::<String>(2)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            password_hash: row
+                .get::<Option<String>>(3)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            avatar_url: row
+                .get::<Option<String>>(5)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            elo: row
+                .get::<i32>(6)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            total_games: row
+                .get::<i32>(7)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            wins: row
+                .get::<i32>(8)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            losses: row
+                .get::<i32>(9)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            draws: row
+                .get::<i32>(10)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            created_at: row
+                .get::<String>(11)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            updated_at: row
+                .get::<String>(12)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            is_banned: row
+                .get::<i32>(13)
+                .map_err(|e| AppError::Internal(e.to_string()))?
+                != 0,
+            banned_at: row
+                .get::<Option<String>>(14)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            banned_reason: row
+                .get::<Option<String>>(15)
+                .map_err(|e| AppError::Internal(e.to_string()))?,
+            is_admin: row
+                .get::<i32>(16)
+                .map_err(|e| AppError::Internal(e.to_string()))?
+                != 0,
         })
     }
 
@@ -85,11 +119,18 @@ impl User {
         password_hash: &str,
     ) -> Result<Self, AppError> {
         let id = Uuid::new_v4().to_string();
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         conn.execute(
             "INSERT INTO users (id, username, email, password_hash) VALUES (?1, ?2, ?3, ?4)",
-            (id.clone(), username.to_string(), email.to_string(), password_hash.to_string()),
+            (
+                id.clone(),
+                username.to_string(),
+                email.to_string(),
+                password_hash.to_string(),
+            ),
         )
         .await
         .map_err(|e| {
@@ -118,7 +159,9 @@ impl User {
         avatar_url: Option<&str>,
     ) -> Result<Self, AppError> {
         let id = Uuid::new_v4().to_string();
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         conn.execute(
             "INSERT INTO users (id, username, email, google_id, avatar_url) VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -133,28 +176,40 @@ impl User {
     }
 
     pub async fn find_by_id(db: &Database, id: &str) -> Result<Option<Self>, AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut rows = conn
             .query("SELECT * FROM users WHERE id = ?1", [id])
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        match rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+        match rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+        {
             Some(row) => Ok(Some(Self::from_row(&row)?)),
             None => Ok(None),
         }
     }
 
     pub async fn find_by_email(db: &Database, email: &str) -> Result<Option<Self>, AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut rows = conn
             .query("SELECT * FROM users WHERE email = ?1", [email])
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        match rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+        match rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+        {
             Some(row) => Ok(Some(Self::from_row(&row)?)),
             None => Ok(None),
         }
@@ -164,25 +219,29 @@ impl User {
         db: &Database,
         google_id: &str,
     ) -> Result<Option<Self>, AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut rows = conn
             .query("SELECT * FROM users WHERE google_id = ?1", [google_id])
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        match rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+        match rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+        {
             Some(row) => Ok(Some(Self::from_row(&row)?)),
             None => Ok(None),
         }
     }
 
-    pub async fn update_elo(
-        db: &Database,
-        user_id: &str,
-        new_elo: i32,
-    ) -> Result<(), AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+    pub async fn update_elo(db: &Database, user_id: &str, new_elo: i32) -> Result<(), AppError> {
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         conn.execute(
             "UPDATE users SET elo = ?1, updated_at = datetime('now') WHERE id = ?2",
@@ -199,7 +258,9 @@ impl User {
         user_id: &str,
         won: Option<bool>,
     ) -> Result<(), AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let query = match won {
             Some(true) => {
@@ -221,7 +282,9 @@ impl User {
     }
 
     pub async fn top_by_elo(db: &Database, limit: i32) -> Result<Vec<Self>, AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut rows = conn
             .query("SELECT * FROM users ORDER BY elo DESC LIMIT ?1", [limit])
@@ -229,7 +292,11 @@ impl User {
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut users = Vec::new();
-        while let Some(row) = rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+        while let Some(row) = rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+        {
             users.push(Self::from_row(&row)?);
         }
 
@@ -237,7 +304,9 @@ impl User {
     }
 
     pub async fn delete(db: &Database, user_id: &str) -> Result<(), AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // Delete related records first (cascade)
         conn.execute("DELETE FROM elo_history WHERE user_id = ?1", [user_id])
@@ -261,14 +330,20 @@ impl User {
 
     // Admin methods
     pub async fn is_admin(db: &Database, user_id: &str) -> Result<bool, AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut rows = conn
             .query("SELECT is_admin FROM users WHERE id = ?1", [user_id])
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        match rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+        match rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+        {
             Some(row) => {
                 let is_admin: i32 = row.get(0).map_err(|e| AppError::Internal(e.to_string()))?;
                 Ok(is_admin != 0)
@@ -284,14 +359,18 @@ impl User {
         offset: i32,
         limit: i32,
     ) -> Result<Vec<Self>, AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut query = String::from("SELECT * FROM users WHERE 1=1");
         let mut params: Vec<String> = Vec::new();
 
         if let Some(s) = search {
             if !s.is_empty() {
-                query.push_str(" AND (username LIKE '%' || ?1 || '%' OR email LIKE '%' || ?1 || '%')");
+                query.push_str(
+                    " AND (username LIKE '%' || ?1 || '%' OR email LIKE '%' || ?1 || '%')",
+                );
                 params.push(s.to_string());
             }
         }
@@ -303,7 +382,12 @@ impl User {
             _ => "created_at DESC",
         };
 
-        query.push_str(&format!(" ORDER BY {} LIMIT ?{} OFFSET ?{}", order, params.len() + 1, params.len() + 2));
+        query.push_str(&format!(
+            " ORDER BY {} LIMIT ?{} OFFSET ?{}",
+            order,
+            params.len() + 1,
+            params.len() + 2
+        ));
         params.push(limit.to_string());
         params.push(offset.to_string());
 
@@ -312,13 +396,20 @@ impl User {
                 .await
                 .map_err(|e| AppError::Internal(e.to_string()))?
         } else {
-            conn.query(&query, [params[0].as_str(), params[1].as_str(), params[2].as_str()])
-                .await
-                .map_err(|e| AppError::Internal(e.to_string()))?
+            conn.query(
+                &query,
+                [params[0].as_str(), params[1].as_str(), params[2].as_str()],
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
         };
 
         let mut users = Vec::new();
-        while let Some(row) = rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+        while let Some(row) = rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+        {
             users.push(Self::from_row(&row)?);
         }
 
@@ -326,13 +417,17 @@ impl User {
     }
 
     pub async fn count_all(db: &Database, search: Option<&str>) -> Result<i64, AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut query = String::from("SELECT COUNT(*) FROM users WHERE 1=1");
 
         let mut rows = if let Some(s) = search {
             if !s.is_empty() {
-                query.push_str(" AND (username LIKE '%' || ?1 || '%' OR email LIKE '%' || ?1 || '%')");
+                query.push_str(
+                    " AND (username LIKE '%' || ?1 || '%' OR email LIKE '%' || ?1 || '%')",
+                );
                 conn.query(&query, [s])
                     .await
                     .map_err(|e| AppError::Internal(e.to_string()))?
@@ -347,7 +442,11 @@ impl User {
                 .map_err(|e| AppError::Internal(e.to_string()))?
         };
 
-        match rows.next().await.map_err(|e| AppError::Internal(e.to_string()))? {
+        match rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+        {
             Some(row) => {
                 let count: i64 = row.get(0).map_err(|e| AppError::Internal(e.to_string()))?;
                 Ok(count)
@@ -356,12 +455,10 @@ impl User {
         }
     }
 
-    pub async fn ban(
-        db: &Database,
-        user_id: &str,
-        reason: &str,
-    ) -> Result<(), AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+    pub async fn ban(db: &Database, user_id: &str, reason: &str) -> Result<(), AppError> {
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         conn.execute(
             "UPDATE users SET is_banned = 1, banned_at = datetime('now'), banned_reason = ?1, updated_at = datetime('now') WHERE id = ?2",
@@ -374,7 +471,9 @@ impl User {
     }
 
     pub async fn unban(db: &Database, user_id: &str) -> Result<(), AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         conn.execute(
             "UPDATE users SET is_banned = 0, banned_at = NULL, banned_reason = NULL, updated_at = datetime('now') WHERE id = ?1",
@@ -395,7 +494,9 @@ impl User {
         losses: Option<i32>,
         draws: Option<i32>,
     ) -> Result<(), AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut query = String::from("UPDATE users SET ");
         let mut updates: Vec<String> = Vec::new();
@@ -458,33 +559,60 @@ impl User {
     }
 
     pub async fn get_platform_stats(db: &Database) -> Result<PlatformStats, AppError> {
-        let conn = db.connect().map_err(|e| AppError::Internal(e.to_string()))?;
-
-        let mut rows = conn.query("SELECT COUNT(*) FROM users", [] as [&str; 0]).await
+        let conn = db
+            .connect()
             .map_err(|e| AppError::Internal(e.to_string()))?;
-        let total_users: i64 = rows.next().await.map_err(|e| AppError::Internal(e.to_string()))?
+
+        let mut rows = conn
+            .query("SELECT COUNT(*) FROM users", [] as [&str; 0])
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let total_users: i64 = rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
             .ok_or_else(|| AppError::Internal("Failed to get total users".into()))?
-            .get(0).map_err(|e| AppError::Internal(e.to_string()))?;
+            .get(0)
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut rows = conn.query(
             "SELECT COUNT(DISTINCT user_id) FROM elo_history WHERE created_at > datetime('now', '-30 days')",
             [] as [&str; 0],
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
-        let active_users: i64 = rows.next().await.map_err(|e| AppError::Internal(e.to_string()))?
+        let active_users: i64 = rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
             .ok_or_else(|| AppError::Internal("Failed to get active users".into()))?
-            .get(0).map_err(|e| AppError::Internal(e.to_string()))?;
-
-        let mut rows = conn.query("SELECT COUNT(*) FROM matches", [] as [&str; 0]).await
+            .get(0)
             .map_err(|e| AppError::Internal(e.to_string()))?;
-        let total_matches: i64 = rows.next().await.map_err(|e| AppError::Internal(e.to_string()))?
+
+        let mut rows = conn
+            .query("SELECT COUNT(*) FROM matches", [] as [&str; 0])
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let total_matches: i64 = rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
             .ok_or_else(|| AppError::Internal("Failed to get total matches".into()))?
-            .get(0).map_err(|e| AppError::Internal(e.to_string()))?;
-
-        let mut rows = conn.query("SELECT COUNT(*) FROM users WHERE is_banned = 1", [] as [&str; 0]).await
+            .get(0)
             .map_err(|e| AppError::Internal(e.to_string()))?;
-        let banned_users: i64 = rows.next().await.map_err(|e| AppError::Internal(e.to_string()))?
+
+        let mut rows = conn
+            .query(
+                "SELECT COUNT(*) FROM users WHERE is_banned = 1",
+                [] as [&str; 0],
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let banned_users: i64 = rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
             .ok_or_else(|| AppError::Internal("Failed to get banned users".into()))?
-            .get(0).map_err(|e| AppError::Internal(e.to_string()))?;
+            .get(0)
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok(PlatformStats {
             total_users,

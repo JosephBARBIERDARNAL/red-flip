@@ -58,8 +58,13 @@ pub async fn login(
 
     // Check if user is banned
     if user.is_banned {
-        let reason = user.banned_reason.unwrap_or_else(|| "No reason provided".to_string());
-        return Err(AppError::Unauthorized(format!("Account banned: {}", reason)));
+        let reason = user
+            .banned_reason
+            .unwrap_or_else(|| "No reason provided".to_string());
+        return Err(AppError::Unauthorized(format!(
+            "Account banned: {}",
+            reason
+        )));
     }
 
     let password_hash = user

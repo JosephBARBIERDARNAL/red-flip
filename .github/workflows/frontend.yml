@@ -31,9 +31,7 @@ jobs:
         run: npm ci
 
       - name: Check formatting (Prettier)
-        # Ensure you have a 'format:check' or similar script in package.json
-        # Common: "prettier --check ."
-        run: npm run format:check || npx prettier --check .
+        run: npx prettier --check .
 
       - name: Lint (ESLint)
         run: npm run lint
