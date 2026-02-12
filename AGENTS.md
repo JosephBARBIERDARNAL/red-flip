@@ -15,7 +15,7 @@ Full-stack Rock Paper Scissors web app with Elo ranking. Monorepo with `backend/
 
 - Backend uses Actix actor model: MatchmakingActor (singleton), GameSessionActor (per match), PlayerWsActor (per WebSocket connection)
 - Frontend uses Next.js App Router with client-side auth (JWT in localStorage)
-- SQLite database with manual migration files in `backend/migrations/`
+- Turso database
 - WebSocket at `/ws?token=JWT` for real-time game communication
 
 ## Key Design Rules
