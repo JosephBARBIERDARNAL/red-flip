@@ -134,7 +134,8 @@ impl GameSessionActor {
         let p2_choice_str = p2_choice.unwrap_or_else(|| "none".into());
 
         // Send round results
-        let _ = self.p1_addr
+        let _ = self
+            .p1_addr
             .do_send(SendServerMessage(ServerMessage::RoundResult {
                 round: self.current_round,
                 your_choice: p1_choice_str.clone(),
@@ -148,7 +149,8 @@ impl GameSessionActor {
                 opponent_score: self.p2_score,
             }));
 
-        let _ = self.p2_addr
+        let _ = self
+            .p2_addr
             .do_send(SendServerMessage(ServerMessage::RoundResult {
                 round: self.current_round,
                 your_choice: p2_choice_str,
@@ -467,11 +469,13 @@ impl Handler<PlayerChoice> for GameSessionActor {
         if msg.user_id == self.p1_id && self.p1_choice.is_none() {
             self.p1_choice = Some(msg.choice);
             // Notify opponent that this player has chosen
-            let _ = self.p2_addr
+            let _ = self
+                .p2_addr
                 .do_send(SendServerMessage(ServerMessage::OpponentChose));
         } else if msg.user_id == self.p2_id && self.p2_choice.is_none() {
             self.p2_choice = Some(msg.choice);
-            let _ = self.p1_addr
+            let _ = self
+                .p1_addr
                 .do_send(SendServerMessage(ServerMessage::OpponentChose));
         }
 

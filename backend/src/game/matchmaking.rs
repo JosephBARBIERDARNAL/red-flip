@@ -186,61 +186,57 @@ impl MatchmakingActor {
         let player_addr = player.addr.clone();
 
         // Async fetch random AI user
-        let fut = async move {
-            User::get_random_ai(&db).await.ok().map(|ai| (ai, db))
-        };
+        let fut = async move { User::get_random_ai(&db).await.ok().map(|ai| (ai, db)) };
 
-        ctx.spawn(
-            fut.into_actor(self).map(move |result, _act, _ctx| {
-                if let Some((ai_user, db)) = result {
-                    // Notify player
-                    player_addr.do_send(SendServerMessage(ServerMessage::MatchFound {
-                        session_id: String::new(),
-                        opponent: OpponentInfo {
-                            username: ai_user.username.clone(),
-                            elo: ai_user.elo,
-                        },
-                    }));
+        ctx.spawn(fut.into_actor(self).map(move |result, _act, _ctx| {
+            if let Some((ai_user, db)) = result {
+                // Notify player
+                player_addr.do_send(SendServerMessage(ServerMessage::MatchFound {
+                    session_id: String::new(),
+                    opponent: OpponentInfo {
+                        username: ai_user.username.clone(),
+                        elo: ai_user.elo,
+                    },
+                }));
 
-                    // Create AI actor
-                    let ai_actor = AiPlayerActor::new(ai_user.id.clone()).start();
+                // Create AI actor
+                let ai_actor = AiPlayerActor::new(ai_user.id.clone()).start();
 
-                    // Notify AI (for consistency)
-                    ai_actor.do_send(SendServerMessage(ServerMessage::MatchFound {
-                        session_id: String::new(),
-                        opponent: OpponentInfo {
-                            username: player_username.clone(),
-                            elo: player_elo,
-                        },
-                    }));
+                // Notify AI (for consistency)
+                ai_actor.do_send(SendServerMessage(ServerMessage::MatchFound {
+                    session_id: String::new(),
+                    opponent: OpponentInfo {
+                        username: player_username.clone(),
+                        elo: player_elo,
+                    },
+                }));
 
-                    // Create game session
-                    let session = GameSessionActor::new(
-                        player_user_id,
-                        player_username,
-                        player_elo,
-                        player_is_guest,
-                        false, // player is not AI
-                        player_addr.clone().recipient(),
-                        ai_user.id.clone(),
-                        ai_user.username.clone(),
-                        ai_user.elo,
-                        false, // AI is not guest
-                        true,  // AI is AI
-                        ai_actor.clone().recipient(),
-                        player_ranked,
-                        db,
-                    );
+                // Create game session
+                let session = GameSessionActor::new(
+                    player_user_id,
+                    player_username,
+                    player_elo,
+                    player_is_guest,
+                    false, // player is not AI
+                    player_addr.clone().recipient(),
+                    ai_user.id.clone(),
+                    ai_user.username.clone(),
+                    ai_user.elo,
+                    false, // AI is not guest
+                    true,  // AI is AI
+                    ai_actor.clone().recipient(),
+                    player_ranked,
+                    db,
+                );
 
-                    let session_addr = session.start();
-                    player_addr.do_send(SetSession(session_addr.clone()));
-                    ai_actor.do_send(SetSession(session_addr));
-                } else {
-                    player_addr.do_send(SendServerMessage(ServerMessage::Error {
-                        message: "Failed to find opponent".into(),
-                    }));
-                }
-            })
-        );
+                let session_addr = session.start();
+                player_addr.do_send(SetSession(session_addr.clone()));
+                ai_actor.do_send(SetSession(session_addr));
+            } else {
+                player_addr.do_send(SendServerMessage(ServerMessage::Error {
+                    message: "Failed to find opponent".into(),
+                }));
+            }
+        }));
     }
 }
