@@ -1,5 +1,6 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
+use uuid::Uuid;
 
 use crate::api::{admin, dashboard, leaderboard, user};
 use crate::auth::handlers;
@@ -61,7 +62,7 @@ async fn ws_handler(
         (user.id, user.username, user.elo, false)
     } else {
         // Guest user
-        let guest_id = format!("guest_{}", uuid::Uuid::new_v4());
+        let guest_id = format!("guest_{}", Uuid::new_v4());
         let guest_name = format!("Guest{}", &guest_id[6..10]);
         (guest_id, guest_name, 1000, true)
     };
