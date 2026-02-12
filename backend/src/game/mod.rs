@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod elo;
 pub mod matchmaking;
 pub mod session;

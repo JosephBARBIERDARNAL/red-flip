@@ -25,6 +25,7 @@ pub struct User {
     pub is_banned: bool,
     pub banned_at: Option<String>,
     pub banned_reason: Option<String>,
+    pub is_ai: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -107,6 +108,10 @@ impl User {
                 .map_err(|e| AppError::Internal(e.to_string()))?,
             is_admin: row
                 .get::<i32>(16)
+                .map_err(|e| AppError::Internal(e.to_string()))?
+                != 0,
+            is_ai: row
+                .get::<i32>(17)
                 .map_err(|e| AppError::Internal(e.to_string()))?
                 != 0,
         })
@@ -573,6 +578,28 @@ impl User {
             total_matches,
             banned_users,
         })
+    }
+
+    pub async fn get_random_ai(db: &Database) -> Result<Self, AppError> {
+        let conn = db
+            .connect()
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut rows = conn
+            .query(
+                "SELECT * FROM users WHERE is_ai = 1 ORDER BY RANDOM() LIMIT 1",
+                [] as [&str; 0],
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        match rows
+            .next()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?
+        {
+            Some(row) => Ok(Self::from_row(&row)?),
+            None => Err(AppError::Internal("No AI users available".into())),
+        }
     }
 }
 

@@ -19,6 +19,7 @@ pub async fn run_migrations(db: &Database) {
         include_str!("../migrations/002_create_matches.sql"),
         include_str!("../migrations/003_create_elo_history.sql"),
         include_str!("../migrations/004_add_admin_fields.sql"),
+        include_str!("../migrations/005_add_ai_players.sql"),
     ];
 
     let conn = db.connect().expect("Failed to get connection");

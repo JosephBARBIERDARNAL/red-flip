@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use crate::db::Database;
 use crate::game::elo::calculate_elo;
-use crate::game::ws::{PlayerWsActor, SendServerMessage, ServerMessage};
+use crate::game::ws::{SendServerMessage, ServerMessage};
 use crate::models::elo_history::EloHistory;
 use crate::models::match_record::{MatchRecord, Round};
 use crate::models::user::User;
@@ -16,13 +16,17 @@ pub struct GameSessionActor {
     p1_username: String,
     p1_elo: i32,
     p1_is_guest: bool,
-    p1_addr: Addr<PlayerWsActor>,
+    #[allow(dead_code)]
+    p1_is_ai: bool,
+    p1_addr: Recipient<SendServerMessage>,
     p1_choice: Option<String>,
     p2_id: String,
     p2_username: String,
     p2_elo: i32,
     p2_is_guest: bool,
-    p2_addr: Addr<PlayerWsActor>,
+    #[allow(dead_code)]
+    p2_is_ai: bool,
+    p2_addr: Recipient<SendServerMessage>,
     p2_choice: Option<String>,
     p1_score: i32,
     p2_score: i32,
@@ -39,12 +43,14 @@ impl GameSessionActor {
         p1_username: String,
         p1_elo: i32,
         p1_is_guest: bool,
-        p1_addr: Addr<PlayerWsActor>,
+        p1_is_ai: bool,
+        p1_addr: Recipient<SendServerMessage>,
         p2_id: String,
         p2_username: String,
         p2_elo: i32,
         p2_is_guest: bool,
-        p2_addr: Addr<PlayerWsActor>,
+        p2_is_ai: bool,
+        p2_addr: Recipient<SendServerMessage>,
         is_ranked: bool,
         db: Database,
     ) -> Self {
@@ -53,12 +59,14 @@ impl GameSessionActor {
             p1_username,
             p1_elo,
             p1_is_guest,
+            p1_is_ai,
             p1_addr,
             p1_choice: None,
             p2_id,
             p2_username,
             p2_elo,
             p2_is_guest,
+            p2_is_ai,
             p2_addr,
             p2_choice: None,
             p1_score: 0,
@@ -80,8 +88,8 @@ impl GameSessionActor {
             timeout_secs: ROUND_TIMEOUT_SECS,
         };
 
-        self.p1_addr.do_send(SendServerMessage(msg.clone()));
-        self.p2_addr.do_send(SendServerMessage(msg));
+        let _ = self.p1_addr.do_send(SendServerMessage(msg.clone()));
+        let _ = self.p2_addr.do_send(SendServerMessage(msg));
 
         // Round timeout
         ctx.run_later(Duration::from_secs(ROUND_TIMEOUT_SECS), |act, ctx| {
@@ -126,7 +134,7 @@ impl GameSessionActor {
         let p2_choice_str = p2_choice.unwrap_or_else(|| "none".into());
 
         // Send round results
-        self.p1_addr
+        let _ = self.p1_addr
             .do_send(SendServerMessage(ServerMessage::RoundResult {
                 round: self.current_round,
                 your_choice: p1_choice_str.clone(),
@@ -140,7 +148,7 @@ impl GameSessionActor {
                 opponent_score: self.p2_score,
             }));
 
-        self.p2_addr
+        let _ = self.p2_addr
             .do_send(SendServerMessage(ServerMessage::RoundResult {
                 round: self.current_round,
                 your_choice: p2_choice_str,
@@ -273,7 +281,7 @@ impl GameSessionActor {
                 None
             };
 
-            p1_addr.do_send(SendServerMessage(ServerMessage::MatchComplete {
+            let _ = p1_addr.do_send(SendServerMessage(ServerMessage::MatchComplete {
                 result: p1_outcome,
                 your_score: p1_score,
                 opponent_score: p2_score,
@@ -285,7 +293,7 @@ impl GameSessionActor {
                 },
             }));
 
-            p2_addr.do_send(SendServerMessage(ServerMessage::MatchComplete {
+            let _ = p2_addr.do_send(SendServerMessage(ServerMessage::MatchComplete {
                 result: p2_outcome,
                 your_score: p2_score,
                 opponent_score: p1_score,
@@ -313,7 +321,7 @@ impl GameSessionActor {
             (&self.p1_addr, &self.p2_id)
         };
 
-        winner_addr.do_send(SendServerMessage(ServerMessage::OpponentDisconnected));
+        let _ = winner_addr.do_send(SendServerMessage(ServerMessage::OpponentDisconnected));
 
         // Record as forfeit (loser gets full loss Elo penalty)
         let db = self.db.clone();
@@ -396,7 +404,7 @@ impl GameSessionActor {
             let winner_new_elo = if loser_is_p1 { new_p2_elo } else { new_p1_elo };
             let winner_old_elo = if loser_is_p1 { p2_elo } else { p1_elo };
 
-            winner_addr.do_send(SendServerMessage(ServerMessage::MatchComplete {
+            let _ = winner_addr.do_send(SendServerMessage(ServerMessage::MatchComplete {
                 result: "win".into(),
                 your_score: winner_score,
                 opponent_score: loser_score,
@@ -459,11 +467,11 @@ impl Handler<PlayerChoice> for GameSessionActor {
         if msg.user_id == self.p1_id && self.p1_choice.is_none() {
             self.p1_choice = Some(msg.choice);
             // Notify opponent that this player has chosen
-            self.p2_addr
+            let _ = self.p2_addr
                 .do_send(SendServerMessage(ServerMessage::OpponentChose));
         } else if msg.user_id == self.p2_id && self.p2_choice.is_none() {
             self.p2_choice = Some(msg.choice);
-            self.p1_addr
+            let _ = self.p1_addr
                 .do_send(SendServerMessage(ServerMessage::OpponentChose));
         }
 
