@@ -6,7 +6,7 @@ CREATE INDEX IF NOT EXISTS idx_users_is_ai ON users(is_ai);
 
 -- Insert 100 AI users with creative names and distributed Elo ratings
 -- Rock-themed names (20)
-INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
+INSERT OR IGNORE INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-001', 'StoneWall', 'ai-001@bot.local', NULL, 985, 1),
 ('ai-002', 'RockSolid', 'ai-002@bot.local', NULL, 1015, 1),
 ('ai-003', 'GraniteGuard', 'ai-003@bot.local', NULL, 995, 1),
@@ -29,7 +29,7 @@ INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-020', 'GravelGuru', 'ai-020@bot.local', NULL, 965, 1);
 
 -- Paper-themed names (20)
-INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
+INSERT OR IGNORE INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-021', 'ScrollMaster', 'ai-021@bot.local', NULL, 1005, 1),
 ('ai-022', 'ParchmentPro', 'ai-022@bot.local', NULL, 1025, 1),
 ('ai-023', 'OrigamiKing', 'ai-023@bot.local', NULL, 995, 1),
@@ -52,7 +52,7 @@ INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-040', 'CalligraphyKing', 'ai-040@bot.local', NULL, 980, 1);
 
 -- Scissors-themed names (20)
-INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
+INSERT OR IGNORE INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-041', 'BladeRunner', 'ai-041@bot.local', NULL, 1010, 1),
 ('ai-042', 'CutAbove', 'ai-042@bot.local', NULL, 1025, 1),
 ('ai-043', 'SharpWit', 'ai-043@bot.local', NULL, 990, 1),
@@ -75,7 +75,7 @@ INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-060', 'CutClutch', 'ai-060@bot.local', NULL, 1000, 1);
 
 -- Speed-themed names (20)
-INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
+INSERT OR IGNORE INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-061', 'QuickDraw', 'ai-061@bot.local', NULL, 1015, 1),
 ('ai-062', 'SwiftStrike', 'ai-062@bot.local', NULL, 1005, 1),
 ('ai-063', 'LightningFast', 'ai-063@bot.local', NULL, 1040, 1),
@@ -98,7 +98,7 @@ INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-080', 'RapidReflexes', 'ai-080@bot.local', NULL, 1015, 1);
 
 -- Power-themed names (20)
-INSERT INTO users (id, username, email, password_hash, elo, is_ai) VALUES
+INSERT OR IGNORE INTO users (id, username, email, password_hash, elo, is_ai) VALUES
 ('ai-081', 'ThunderFist', 'ai-081@bot.local', NULL, 1020, 1),
 ('ai-082', 'StormBringer', 'ai-082@bot.local', NULL, 1000, 1),
 ('ai-083', 'IronGrip', 'ai-083@bot.local', NULL, 1035, 1),

@@ -59,61 +59,58 @@ impl From<User> for PublicUser {
 
 impl User {
     fn from_row(row: &Row) -> Result<Self, AppError> {
+        let column_index = |name: &str| -> Option<i32> {
+            (0..row.column_count()).find(|&i| row.column_name(i) == Some(name))
+        };
+
+        let get_required = |name: &str| -> Result<String, AppError> {
+            let idx = column_index(name)
+                .ok_or_else(|| AppError::Internal(format!("Missing `{name}` column")))?;
+            row.get::<String>(idx)
+                .map_err(|e| AppError::Internal(e.to_string()))
+        };
+
+        let get_optional = |name: &str| -> Result<Option<String>, AppError> {
+            match column_index(name) {
+                Some(idx) => row
+                    .get::<Option<String>>(idx)
+                    .map_err(|e| AppError::Internal(e.to_string())),
+                None => Ok(None),
+            }
+        };
+
+        let get_i32 = |name: &str, default: i32| -> Result<i32, AppError> {
+            match column_index(name) {
+                Some(idx) => row
+                    .get::<Option<i32>>(idx)
+                    .map_err(|e| AppError::Internal(e.to_string()))
+                    .map(|v| v.unwrap_or(default)),
+                None => Ok(default),
+            }
+        };
+
+        let get_bool = |name: &str, default: bool| -> Result<bool, AppError> {
+            get_i32(name, if default { 1 } else { 0 }).map(|v| v != 0)
+        };
+
         Ok(User {
-            id: row
-                .get::<String>(0)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            username: row
-                .get::<String>(1)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            email: row
-                .get::<String>(2)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            password_hash: row
-                .get::<Option<String>>(3)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            avatar_url: row
-                .get::<Option<String>>(5)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            elo: row
-                .get::<i32>(6)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            total_games: row
-                .get::<i32>(7)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            wins: row
-                .get::<i32>(8)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            losses: row
-                .get::<i32>(9)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            draws: row
-                .get::<i32>(10)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            created_at: row
-                .get::<String>(11)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            updated_at: row
-                .get::<String>(12)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            is_banned: row
-                .get::<i32>(13)
-                .map_err(|e| AppError::Internal(e.to_string()))?
-                != 0,
-            banned_at: row
-                .get::<Option<String>>(14)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            banned_reason: row
-                .get::<Option<String>>(15)
-                .map_err(|e| AppError::Internal(e.to_string()))?,
-            is_admin: row
-                .get::<i32>(16)
-                .map_err(|e| AppError::Internal(e.to_string()))?
-                != 0,
-            is_ai: row
-                .get::<i32>(17)
-                .map_err(|e| AppError::Internal(e.to_string()))?
-                != 0,
+            id: get_required("id")?,
+            username: get_required("username")?,
+            email: get_required("email")?,
+            password_hash: get_optional("password_hash")?,
+            avatar_url: get_optional("avatar_url")?,
+            elo: get_i32("elo", 1000)?,
+            total_games: get_i32("total_games", 0)?,
+            wins: get_i32("wins", 0)?,
+            losses: get_i32("losses", 0)?,
+            draws: get_i32("draws", 0)?,
+            created_at: get_required("created_at")?,
+            updated_at: get_required("updated_at")?,
+            is_admin: get_bool("is_admin", false)?,
+            is_banned: get_bool("is_banned", false)?,
+            banned_at: get_optional("banned_at")?,
+            banned_reason: get_optional("banned_reason")?,
+            is_ai: get_bool("is_ai", false)?,
         })
     }
 

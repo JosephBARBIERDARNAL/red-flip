@@ -25,11 +25,18 @@ pub async fn run_migrations(db: &Database) {
     let conn = db.connect().expect("Failed to get connection");
 
     for migration in &migrations {
-        // Split migration into individual statements (libsql doesn't support batches)
-        let statements: Vec<&str> = migration
+        // Remove comment-only lines, then split into individual statements
+        // (libsql doesn't support batch execution).
+        let sanitized_migration = migration
+            .lines()
+            .filter(|line| !line.trim_start().starts_with("--"))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let statements: Vec<&str> = sanitized_migration
             .split(';')
             .map(|s| s.trim())
-            .filter(|s| !s.is_empty() && !s.starts_with("--"))
+            .filter(|s| !s.is_empty())
             .collect();
 
         for statement in statements {
