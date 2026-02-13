@@ -519,3 +519,41 @@ fn determine_winner(p1: Option<&str>, p2: Option<&str>) -> RoundWinner {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn determine_winner_draw_cases() {
+        assert!(matches!(determine_winner(None, None), RoundWinner::Draw));
+        assert!(matches!(
+            determine_winner(Some("rock"), Some("rock")),
+            RoundWinner::Draw
+        ));
+    }
+
+    #[test]
+    fn determine_winner_timeout_cases() {
+        assert!(matches!(
+            determine_winner(Some("paper"), None),
+            RoundWinner::Player1
+        ));
+        assert!(matches!(
+            determine_winner(None, Some("scissors")),
+            RoundWinner::Player2
+        ));
+    }
+
+    #[test]
+    fn determine_winner_standard_rps_cases() {
+        assert!(matches!(
+            determine_winner(Some("rock"), Some("scissors")),
+            RoundWinner::Player1
+        ));
+        assert!(matches!(
+            determine_winner(Some("paper"), Some("scissors")),
+            RoundWinner::Player2
+        ));
+    }
+}

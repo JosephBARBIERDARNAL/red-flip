@@ -455,60 +455,54 @@ impl User {
 
         let mut query = String::from("UPDATE users SET ");
         let mut updates: Vec<String> = Vec::new();
+        let mut params: Vec<String> = Vec::new();
 
-        if username.is_some() {
-            updates.push("username = ?1".to_string());
+        if let Some(u) = username {
+            params.push(u.to_string());
+            updates.push(format!("username = ?{}", params.len()));
         }
-        if elo.is_some() {
-            updates.push(format!("elo = ?{}", updates.len() + 1));
+        if let Some(e) = elo {
+            params.push(e.to_string());
+            updates.push(format!("elo = ?{}", params.len()));
         }
-        if wins.is_some() {
-            updates.push(format!("wins = ?{}", updates.len() + 1));
+        if let Some(w) = wins {
+            params.push(w.to_string());
+            updates.push(format!("wins = ?{}", params.len()));
         }
-        if losses.is_some() {
-            updates.push(format!("losses = ?{}", updates.len() + 1));
+        if let Some(l) = losses {
+            params.push(l.to_string());
+            updates.push(format!("losses = ?{}", params.len()));
         }
-        if draws.is_some() {
-            updates.push(format!("draws = ?{}", updates.len() + 1));
+        if let Some(d) = draws {
+            params.push(d.to_string());
+            updates.push(format!("draws = ?{}", params.len()));
         }
 
         if updates.is_empty() {
             return Ok(());
         }
 
-        // Update total_games if any game stats are changed
-        if wins.is_some() || losses.is_some() || draws.is_some() {
-            updates.push("total_games = wins + losses + draws".to_string());
-        }
+        let should_refresh_total_games = wins.is_some() || losses.is_some() || draws.is_some();
 
         updates.push("updated_at = datetime('now')".to_string());
         query.push_str(&updates.join(", "));
-        query.push_str(&format!(" WHERE id = ?{}", updates.len()));
-
-        // Build the parameters tuple dynamically
-        let mut params: Vec<String> = Vec::new();
-        if let Some(u) = username {
-            params.push(u.to_string());
-        }
-        if let Some(e) = elo {
-            params.push(e.to_string());
-        }
-        if let Some(w) = wins {
-            params.push(w.to_string());
-        }
-        if let Some(l) = losses {
-            params.push(l.to_string());
-        }
-        if let Some(d) = draws {
-            params.push(d.to_string());
-        }
         params.push(user_id.to_string());
+        query.push_str(&format!(" WHERE id = ?{}", params.len()));
 
         // Execute with appropriate number of parameters
         let param_refs: Vec<&str> = params.iter().map(|s| s.as_str()).collect();
         conn.execute(&query, param_refs)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        if should_refresh_total_games {
+            conn.execute(
+                "UPDATE users SET total_games = wins + losses + draws, updated_at = datetime('now') WHERE id = ?1",
+                [user_id],
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        }
 
         Ok(())
     }
@@ -606,4 +600,173 @@ pub struct PlatformStats {
     pub active_users: i64,
     pub total_matches: i64,
     pub banned_users: i64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::init_test_db;
+    use crate::errors::AppError;
+
+    async fn create_test_user(db: &Database, username: &str, email: &str) -> User {
+        User::create(db, username, email, "hashed-password")
+            .await
+            .expect("user should be created")
+    }
+
+    #[actix_rt::test]
+    async fn create_and_find_user_with_defaults() {
+        let db = init_test_db().await;
+
+        let created = create_test_user(&db, "alice_test", "alice@example.com").await;
+        let by_id = User::find_by_id(&db, &created.id)
+            .await
+            .expect("query should succeed")
+            .expect("user should exist");
+        let by_email = User::find_by_email(&db, "alice@example.com")
+            .await
+            .expect("query should succeed")
+            .expect("user should exist");
+
+        assert_eq!(by_id.id, created.id);
+        assert_eq!(by_email.username, "alice_test");
+        assert_eq!(by_id.elo, 1000);
+        assert_eq!(by_id.total_games, 0);
+        assert!(!by_id.is_admin);
+        assert!(!by_id.is_ai);
+    }
+
+    #[actix_rt::test]
+    async fn create_enforces_unique_username_and_email() {
+        let db = init_test_db().await;
+        let _ = create_test_user(&db, "duplicate_name", "first@example.com").await;
+
+        let duplicate_username =
+            User::create(&db, "duplicate_name", "second@example.com", "hash").await;
+        assert!(matches!(duplicate_username, Err(AppError::Conflict(_))));
+
+        let duplicate_email = User::create(&db, "other_name", "first@example.com", "hash").await;
+        assert!(matches!(duplicate_email, Err(AppError::Conflict(_))));
+    }
+
+    #[actix_rt::test]
+    async fn update_elo_and_stats_paths_work() {
+        let db = init_test_db().await;
+        let user = create_test_user(&db, "stats_user", "stats@example.com").await;
+
+        User::update_elo(&db, &user.id, 1450)
+            .await
+            .expect("elo update should succeed");
+        User::increment_stats(&db, &user.id, Some(true))
+            .await
+            .expect("win increment should succeed");
+        User::increment_stats(&db, &user.id, Some(false))
+            .await
+            .expect("loss increment should succeed");
+        User::increment_stats(&db, &user.id, None)
+            .await
+            .expect("draw increment should succeed");
+
+        User::update_stats(
+            &db,
+            &user.id,
+            Some("stats_user_renamed"),
+            Some(1500),
+            Some(4),
+            Some(2),
+            Some(1),
+        )
+        .await
+        .expect("stats update should succeed");
+
+        let updated = User::find_by_id(&db, &user.id)
+            .await
+            .expect("query should succeed")
+            .expect("user should exist");
+
+        assert_eq!(updated.username, "stats_user_renamed");
+        assert_eq!(updated.elo, 1500);
+        assert_eq!(updated.wins, 4);
+        assert_eq!(updated.losses, 2);
+        assert_eq!(updated.draws, 1);
+        assert_eq!(updated.total_games, 7);
+    }
+
+    #[actix_rt::test]
+    async fn admin_ban_unban_filter_and_count_work() {
+        let db = init_test_db().await;
+        let admin = create_test_user(&db, "admin_user", "admin@example.com").await;
+        let target = create_test_user(&db, "target_user", "target@example.com").await;
+
+        let conn = db.connect().expect("connection should be available");
+        conn.execute("UPDATE users SET is_admin = 1 WHERE id = ?1", [admin.id.as_str()])
+            .await
+            .expect("admin update should succeed");
+
+        assert!(
+            User::is_admin(&db, &admin.id)
+                .await
+                .expect("admin check should succeed")
+        );
+        assert!(
+            !User::is_admin(&db, &target.id)
+                .await
+                .expect("admin check should succeed")
+        );
+
+        User::ban(&db, &target.id, "test reason")
+            .await
+            .expect("ban should succeed");
+        let banned = User::find_by_id(&db, &target.id)
+            .await
+            .expect("query should succeed")
+            .expect("user should exist");
+        assert!(banned.is_banned);
+        assert_eq!(banned.banned_reason.as_deref(), Some("test reason"));
+
+        User::unban(&db, &target.id)
+            .await
+            .expect("unban should succeed");
+        let unbanned = User::find_by_id(&db, &target.id)
+            .await
+            .expect("query should succeed")
+            .expect("user should exist");
+        assert!(!unbanned.is_banned);
+        assert!(unbanned.banned_reason.is_none());
+
+        User::update_elo(&db, &admin.id, 2000)
+            .await
+            .expect("elo update should succeed");
+        User::update_elo(&db, &target.id, 1800)
+            .await
+            .expect("elo update should succeed");
+
+        let users = User::list_with_filters(&db, Some("user"), Some("elo"), 0, 5)
+            .await
+            .expect("list query should succeed");
+        assert!(!users.is_empty());
+        assert!(users.windows(2).all(|w| w[0].elo >= w[1].elo));
+
+        let filtered_count = User::count_all(&db, Some("example.com"))
+            .await
+            .expect("count query should succeed");
+        assert!(filtered_count >= 2);
+    }
+
+    #[actix_rt::test]
+    async fn platform_stats_and_random_ai_are_available() {
+        let db = init_test_db().await;
+        let _ = create_test_user(&db, "normal_user", "normal@example.com").await;
+
+        let stats = User::get_platform_stats(&db)
+            .await
+            .expect("platform stats should load");
+        assert!(stats.total_users >= 101);
+        assert_eq!(stats.banned_users, 0);
+
+        let ai = User::get_random_ai(&db)
+            .await
+            .expect("an AI user should exist");
+        assert!(ai.is_ai);
+    }
 }

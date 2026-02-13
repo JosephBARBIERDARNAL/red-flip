@@ -77,3 +77,22 @@ async fn ws_handler(
 
     ws::start(actor, &req, stream)
 }
+
+#[cfg(test)]
+mod tests {
+    use actix_web::{http::StatusCode, test, App};
+
+    use super::configure;
+
+    #[actix_rt::test]
+    async fn health_endpoint_returns_ok_status() {
+        let app = test::init_service(App::new().configure(configure)).await;
+        let req = test::TestRequest::get().uri("/api/health").to_request();
+        let resp = test::call_service(&app, req).await;
+
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body: serde_json::Value = test::read_body_json(resp).await;
+        assert_eq!(body["status"], "ok");
+    }
+}

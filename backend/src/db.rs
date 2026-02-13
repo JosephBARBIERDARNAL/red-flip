@@ -60,3 +60,43 @@ pub async fn run_migrations(db: &Database) {
 
     log::info!("Database migrations completed");
 }
+
+#[cfg(test)]
+pub async fn init_test_db() -> Database {
+    let path = std::env::temp_dir().join(format!("red_flip_test_{}.db", uuid::Uuid::new_v4()));
+    let db = Builder::new_local(path)
+        .build()
+        .await
+        .expect("Failed to create local test database");
+    let db = Arc::new(db);
+    run_migrations(&db).await;
+    db
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[actix_rt::test]
+    async fn run_migrations_is_idempotent() {
+        let db = init_test_db().await;
+        run_migrations(&db).await;
+
+        let conn = db.connect().expect("connection should be available");
+        let mut rows = conn
+            .query(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'users'",
+                [] as [&str; 0],
+            )
+            .await
+            .expect("query should succeed");
+
+        let row = rows
+            .next()
+            .await
+            .expect("row fetch should succeed")
+            .expect("row should exist");
+        let count: i64 = row.get(0).expect("count column should exist");
+        assert_eq!(count, 1);
+    }
+}

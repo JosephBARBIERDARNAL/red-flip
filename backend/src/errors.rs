@@ -53,3 +53,31 @@ impl From<jsonwebtoken::errors::Error> for AppError {
         AppError::Unauthorized(err.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::{body::to_bytes, http::StatusCode};
+
+    #[actix_rt::test]
+    async fn bad_request_maps_to_400_with_message() {
+        let resp = AppError::BadRequest("invalid input".into()).error_response();
+
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+
+        let body = to_bytes(resp.into_body()).await.expect("body should be readable");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("body should be json");
+        assert_eq!(json["error"], "invalid input");
+    }
+
+    #[actix_rt::test]
+    async fn internal_error_maps_to_500_and_redacts_message() {
+        let resp = AppError::Internal("db connection failed".into()).error_response();
+
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+        let body = to_bytes(resp.into_body()).await.expect("body should be readable");
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("body should be json");
+        assert_eq!(json["error"], "Internal server error");
+    }
+}

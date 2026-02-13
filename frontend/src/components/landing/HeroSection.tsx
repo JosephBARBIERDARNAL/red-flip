@@ -15,10 +15,10 @@ export default function HeroSection() {
           <FontAwesomeIcon icon={faHandPaper} className="text-brand-300" />
           <FontAwesomeIcon icon={faHandScissors} className="text-brand-200" />
         </div>
-        <h1 className="font-serif text-5xl font-bold mb-4">Red Flip</h1>
-        <p className="font-hand text-2xl text-brand-200 mb-8">
+        <p className="font-serif text-xl text-brand-200 mb-8">
           Rock. Paper. Scissors. Ranked.
         </p>
+        <h1 className="font-hand text-5xl font-bold mb-4">Red Flip</h1>
         <p className="text-lg text-brand-100 mb-10 max-w-2xl mx-auto">
           Compete in real-time best-of-3 matches against other players. Climb
           the Elo leaderboard and prove your skills.

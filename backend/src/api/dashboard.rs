@@ -28,3 +28,52 @@ pub async fn get_dashboard(
         "win_rate": win_rate,
     })))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::body::to_bytes;
+
+    use crate::db::init_test_db;
+
+    #[actix_rt::test]
+    async fn dashboard_returns_not_found_when_user_missing() {
+        let db = web::Data::new(init_test_db().await);
+        let result = get_dashboard(
+            db,
+            AuthenticatedUser {
+                user_id: "missing".into(),
+            },
+        )
+        .await;
+        assert!(matches!(result, Err(AppError::NotFound(_))));
+    }
+
+    #[actix_rt::test]
+    async fn dashboard_computes_win_rate() {
+        let db = web::Data::new(init_test_db().await);
+        let user = User::create(&db, "dash_user", "dash@example.com", "hash")
+            .await
+            .expect("user should be created");
+        User::update_stats(&db, &user.id, None, None, Some(3), Some(1), Some(0))
+            .await
+            .expect("stats update should succeed");
+
+        let resp = get_dashboard(
+            db,
+            AuthenticatedUser {
+                user_id: user.id.clone(),
+            },
+        )
+        .await
+        .expect("dashboard should succeed");
+
+        assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
+        let body = to_bytes(resp.into_body())
+            .await
+            .expect("response body should be readable");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("response should be valid json");
+        assert_eq!(json["win_rate"], 75.0);
+    }
+}

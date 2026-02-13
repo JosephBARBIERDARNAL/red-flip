@@ -26,3 +26,42 @@ impl AppConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Mutex, OnceLock};
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    #[test]
+    fn from_env_reads_required_and_defaults() {
+        let _guard = env_lock().lock().unwrap_or_else(|e| e.into_inner());
+
+        std::env::set_var("DATABASE_URL", "libsql://example.turso.io");
+        std::env::remove_var("DATABASE_AUTH_TOKEN");
+        std::env::set_var("JWT_SECRET", "test-secret");
+        std::env::remove_var("BACKEND_PORT");
+        std::env::remove_var("FRONTEND_URL");
+
+        let cfg = AppConfig::from_env();
+
+        assert_eq!(cfg.database_url, "libsql://example.turso.io");
+        assert_eq!(cfg.database_auth_token, None);
+        assert_eq!(cfg.jwt_secret, "test-secret");
+        assert_eq!(cfg.backend_port, 8080);
+        assert_eq!(cfg.frontend_url, "http://localhost:3000");
+    }
+
+    #[test]
+    fn from_env_panics_without_database_url() {
+        let _guard = env_lock().lock().unwrap_or_else(|e| e.into_inner());
+        std::env::remove_var("DATABASE_URL");
+        std::env::set_var("JWT_SECRET", "test-secret");
+        let result = std::panic::catch_unwind(AppConfig::from_env);
+        assert!(result.is_err());
+    }
+}

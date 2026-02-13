@@ -25,5 +25,8 @@ jobs:
       - name: Build (debug)
         run: cd backend && cargo build --all-features
 
+      - name: Run unit tests
+        run: cd backend && cargo test --all-features
+
       - name: Build (release)
         run: cd backend && cargo build --release --all-features

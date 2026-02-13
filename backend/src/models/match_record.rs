@@ -183,3 +183,60 @@ impl MatchRecord {
         Ok(matches)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::init_test_db;
+    use crate::models::user::User;
+
+    async fn create_test_user(db: &Database, username: &str, email: &str) -> User {
+        User::create(db, username, email, "hash")
+            .await
+            .expect("user should be created")
+    }
+
+    #[actix_rt::test]
+    async fn create_finish_find_and_recent_for_user_work() {
+        let db = init_test_db().await;
+        let p1 = create_test_user(&db, "match_p1", "match_p1@example.com").await;
+        let p2 = create_test_user(&db, "match_p2", "match_p2@example.com").await;
+
+        let completed = MatchRecord::create(&db, &p1.id, &p2.id, true, 1000, 1000)
+            .await
+            .expect("match should be created");
+        MatchRecord::finish(
+            &db,
+            &completed.id,
+            Some(&p1.id),
+            2,
+            1,
+            r#"[{"round_number":1}]"#,
+            1016,
+            984,
+            "completed",
+        )
+        .await
+        .expect("match should be finished");
+
+        let _in_progress = MatchRecord::create(&db, &p1.id, &p2.id, false, 1016, 984)
+            .await
+            .expect("second match should be created");
+
+        let found = MatchRecord::find_by_id(&db, &completed.id)
+            .await
+            .expect("query should succeed")
+            .expect("match should exist");
+        assert_eq!(found.winner_id.as_deref(), Some(p1.id.as_str()));
+        assert_eq!(found.status, "completed");
+        assert_eq!(found.player1_score, 2);
+        assert_eq!(found.player2_score, 1);
+        assert!(found.finished_at.is_some());
+
+        let recent = MatchRecord::recent_for_user(&db, &p1.id, 10)
+            .await
+            .expect("recent query should succeed");
+        assert_eq!(recent.len(), 1);
+        assert_eq!(recent[0].id, completed.id);
+    }
+}

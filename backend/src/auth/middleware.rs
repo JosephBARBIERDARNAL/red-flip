@@ -53,3 +53,33 @@ pub fn extract_optional_user_from_query(query: &str, secret: &str) -> Option<Str
 
     validate_token(&token, secret).ok().map(|claims| claims.sub)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::auth::jwt::create_token;
+
+    #[test]
+    fn extract_optional_user_from_query_returns_user_id_for_valid_token() {
+        let secret = "test-secret";
+        let token = create_token("user-42", secret).expect("token should be created");
+
+        let user_id =
+            extract_optional_user_from_query(&format!("foo=bar&token={token}"), secret);
+
+        assert_eq!(user_id.as_deref(), Some("user-42"));
+    }
+
+    #[test]
+    fn extract_optional_user_from_query_returns_none_for_missing_or_invalid_token() {
+        let secret = "test-secret";
+        let invalid = extract_optional_user_from_query("foo=bar", secret);
+        assert!(invalid.is_none());
+
+        let wrong_secret_token =
+            create_token("user-42", "different-secret").expect("token should be created");
+        let invalid =
+            extract_optional_user_from_query(&format!("token={wrong_secret_token}"), secret);
+        assert!(invalid.is_none());
+    }
+}

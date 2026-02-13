@@ -18,3 +18,6 @@ build: back front
 format:
     cd frontend && npm run lint && npm run format
     cd backend && cargo fmt
+
+test:
+    cd backend && cargo test

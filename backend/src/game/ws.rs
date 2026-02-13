@@ -240,3 +240,46 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerWsActor {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn client_message_deserializes_supported_types() {
+        let join: ClientMessage =
+            serde_json::from_str(r#"{"type":"join_queue","ranked":true}"#)
+                .expect("join_queue should deserialize");
+        assert!(matches!(join, ClientMessage::JoinQueue { ranked: Some(true) }));
+
+        let leave: ClientMessage =
+            serde_json::from_str(r#"{"type":"leave_queue"}"#).expect("leave_queue should parse");
+        assert!(matches!(leave, ClientMessage::LeaveQueue));
+
+        let choice: ClientMessage =
+            serde_json::from_str(r#"{"type":"choice","choice":"rock"}"#)
+                .expect("choice should deserialize");
+        assert!(matches!(
+            choice,
+            ClientMessage::Choice { choice } if choice == "rock"
+        ));
+    }
+
+    #[test]
+    fn server_message_serializes_with_expected_tag() {
+        let msg = ServerMessage::RoundResult {
+            round: 2,
+            your_choice: "paper".into(),
+            opponent_choice: "rock".into(),
+            winner: "you".into(),
+            your_score: 2,
+            opponent_score: 1,
+        };
+
+        let json = serde_json::to_value(msg).expect("server message should serialize");
+
+        assert_eq!(json["type"], "round_result");
+        assert_eq!(json["round"], 2);
+        assert_eq!(json["winner"], "you");
+    }
+}

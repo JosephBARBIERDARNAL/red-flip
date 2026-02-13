@@ -253,3 +253,102 @@ pub async fn delete_user(
         "message": "User deleted successfully"
     })))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::init_test_db;
+    use crate::models::user::User;
+
+    async fn create_admin_and_target(db: &Database) -> (User, User) {
+        let admin = User::create(db, "admin_api", "admin_api@example.com", "hash")
+            .await
+            .expect("admin user should be created");
+        let target = User::create(db, "target_api", "target_api@example.com", "hash")
+            .await
+            .expect("target user should be created");
+
+        let conn = db.connect().expect("connection should be available");
+        conn.execute("UPDATE users SET is_admin = 1 WHERE id = ?1", [admin.id.as_str()])
+            .await
+            .expect("admin flag update should succeed");
+
+        (admin, target)
+    }
+
+    #[actix_rt::test]
+    async fn non_admin_cannot_access_admin_stats() {
+        let db = web::Data::new(init_test_db().await);
+        let user = User::create(&db, "normal_api", "normal_api@example.com", "hash")
+            .await
+            .expect("user should be created");
+
+        let result = get_stats(
+            db,
+            AuthenticatedUser {
+                user_id: user.id.clone(),
+            },
+        )
+        .await;
+
+        assert!(matches!(result, Err(AppError::Unauthorized(_))));
+    }
+
+    #[actix_rt::test]
+    async fn update_user_rejects_self_and_invalid_username() {
+        let db = web::Data::new(init_test_db().await);
+        let (admin, target) = create_admin_and_target(&db).await;
+
+        let self_edit = update_user(
+            db.clone(),
+            AuthenticatedUser {
+                user_id: admin.id.clone(),
+            },
+            web::Path::from(admin.id.clone()),
+            web::Json(UpdateUserRequest {
+                username: Some("new_name".into()),
+                elo: None,
+                wins: None,
+                losses: None,
+                draws: None,
+            }),
+        )
+        .await;
+        assert!(matches!(self_edit, Err(AppError::BadRequest(_))));
+
+        let invalid_username = update_user(
+            db,
+            AuthenticatedUser {
+                user_id: admin.id,
+            },
+            web::Path::from(target.id),
+            web::Json(UpdateUserRequest {
+                username: Some("bad-name!".into()),
+                elo: None,
+                wins: None,
+                losses: None,
+                draws: None,
+            }),
+        )
+        .await;
+        assert!(matches!(invalid_username, Err(AppError::BadRequest(_))));
+    }
+
+    #[actix_rt::test]
+    async fn ban_user_requires_non_empty_reason() {
+        let db = web::Data::new(init_test_db().await);
+        let (admin, target) = create_admin_and_target(&db).await;
+
+        let result = ban_user(
+            db,
+            AuthenticatedUser {
+                user_id: admin.id,
+            },
+            web::Path::from(target.id),
+            web::Json(BanUserRequest { reason: " ".into() }),
+        )
+        .await;
+
+        assert!(matches!(result, Err(AppError::BadRequest(_))));
+    }
+}
