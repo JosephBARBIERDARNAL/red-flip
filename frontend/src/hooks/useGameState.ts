@@ -72,8 +72,12 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
               opponentChoice: data.opponent_choice as string,
               winner: data.winner as RoundWinner,
             };
-            const withoutRound = prev.filter((entry) => entry.round !== nextEntry.round);
-            return [...withoutRound, nextEntry].sort((a, b) => a.round - b.round);
+            const withoutRound = prev.filter(
+              (entry) => entry.round !== nextEntry.round,
+            );
+            return [...withoutRound, nextEntry].sort(
+              (a, b) => a.round - b.round,
+            );
           });
           setStatus("round_result");
           break;

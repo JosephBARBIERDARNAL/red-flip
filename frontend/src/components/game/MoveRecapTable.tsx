@@ -1,11 +1,7 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faTrophy,
-  faXmark,
-  faEquals,
-} from "@fortawesome/free-solid-svg-icons";
+import { faTrophy, faXmark, faEquals } from "@fortawesome/free-solid-svg-icons";
 import { MoveHistoryEntry } from "@/types/game";
 
 interface MoveRecapTableProps {

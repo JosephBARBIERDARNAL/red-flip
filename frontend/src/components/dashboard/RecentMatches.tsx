@@ -24,13 +24,16 @@ interface StoredRound {
   winner: string | null;
 }
 
-function parseMoveHistory(match: MatchRecord, userId: string): MoveHistoryEntry[] {
+function parseMoveHistory(
+  match: MatchRecord,
+  userId: string,
+): MoveHistoryEntry[] {
   const isPlayer1 = match.player1_id === userId;
 
   try {
     const rounds = JSON.parse(match.rounds_json) as StoredRound[];
     return rounds
-      .map((round) => ({
+      .map<MoveHistoryEntry>((round) => ({
         round: round.round_number,
         playerChoice:
           (isPlayer1 ? round.player1_choice : round.player2_choice) ?? "none",
@@ -152,7 +155,9 @@ export default function RecentMatches({ matches, userId }: RecentMatchesProps) {
                 className="text-xs font-medium text-brand-700 hover:text-brand-600 cursor-pointer inline-flex items-center gap-1"
               >
                 {isExpanded ? "Hide moves" : "Show moves"}
-                <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} />
+                <FontAwesomeIcon
+                  icon={isExpanded ? faChevronUp : faChevronDown}
+                />
               </button>
             </div>
 

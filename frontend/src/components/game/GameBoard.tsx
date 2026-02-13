@@ -97,9 +97,11 @@ export default function GameBoard({
         </div>
       </div>
 
-      <p className="text-lg text-gray-700 mb-6">
+      <p className="text-lg text-gray-700 mb-2">
         {myChoice ? "Waiting for opponent..." : "Make your choice!"}
       </p>
+
+      <p className="text-sm text-black mb-4">First to win 3 rounds</p>
 
       <div className="flex justify-center gap-4">
         {choices.map((choice) => (
