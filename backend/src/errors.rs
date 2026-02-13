@@ -65,7 +65,9 @@ mod tests {
 
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 
-        let body = to_bytes(resp.into_body()).await.expect("body should be readable");
+        let body = to_bytes(resp.into_body())
+            .await
+            .expect("body should be readable");
         let json: serde_json::Value = serde_json::from_slice(&body).expect("body should be json");
         assert_eq!(json["error"], "invalid input");
     }
@@ -76,7 +78,9 @@ mod tests {
 
         assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
-        let body = to_bytes(resp.into_body()).await.expect("body should be readable");
+        let body = to_bytes(resp.into_body())
+            .await
+            .expect("body should be readable");
         let json: serde_json::Value = serde_json::from_slice(&body).expect("body should be json");
         assert_eq!(json["error"], "Internal server error");
     }

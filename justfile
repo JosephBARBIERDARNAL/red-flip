@@ -20,4 +20,4 @@ format:
     cd backend && cargo fmt
 
 test:
-    cd backend && cargo test
+    cd backend && cargo test --all-features

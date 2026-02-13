@@ -247,18 +247,19 @@ mod tests {
 
     #[test]
     fn client_message_deserializes_supported_types() {
-        let join: ClientMessage =
-            serde_json::from_str(r#"{"type":"join_queue","ranked":true}"#)
-                .expect("join_queue should deserialize");
-        assert!(matches!(join, ClientMessage::JoinQueue { ranked: Some(true) }));
+        let join: ClientMessage = serde_json::from_str(r#"{"type":"join_queue","ranked":true}"#)
+            .expect("join_queue should deserialize");
+        assert!(matches!(
+            join,
+            ClientMessage::JoinQueue { ranked: Some(true) }
+        ));
 
         let leave: ClientMessage =
             serde_json::from_str(r#"{"type":"leave_queue"}"#).expect("leave_queue should parse");
         assert!(matches!(leave, ClientMessage::LeaveQueue));
 
-        let choice: ClientMessage =
-            serde_json::from_str(r#"{"type":"choice","choice":"rock"}"#)
-                .expect("choice should deserialize");
+        let choice: ClientMessage = serde_json::from_str(r#"{"type":"choice","choice":"rock"}"#)
+            .expect("choice should deserialize");
         assert!(matches!(
             choice,
             ClientMessage::Choice { choice } if choice == "rock"

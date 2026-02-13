@@ -269,9 +269,12 @@ mod tests {
             .expect("target user should be created");
 
         let conn = db.connect().expect("connection should be available");
-        conn.execute("UPDATE users SET is_admin = 1 WHERE id = ?1", [admin.id.as_str()])
-            .await
-            .expect("admin flag update should succeed");
+        conn.execute(
+            "UPDATE users SET is_admin = 1 WHERE id = ?1",
+            [admin.id.as_str()],
+        )
+        .await
+        .expect("admin flag update should succeed");
 
         (admin, target)
     }
@@ -318,9 +321,7 @@ mod tests {
 
         let invalid_username = update_user(
             db,
-            AuthenticatedUser {
-                user_id: admin.id,
-            },
+            AuthenticatedUser { user_id: admin.id },
             web::Path::from(target.id),
             web::Json(UpdateUserRequest {
                 username: Some("bad-name!".into()),
@@ -341,9 +342,7 @@ mod tests {
 
         let result = ban_user(
             db,
-            AuthenticatedUser {
-                user_id: admin.id,
-            },
+            AuthenticatedUser { user_id: admin.id },
             web::Path::from(target.id),
             web::Json(BanUserRequest { reason: " ".into() }),
         )

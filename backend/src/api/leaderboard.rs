@@ -23,7 +23,9 @@ mod tests {
     #[actix_rt::test]
     async fn leaderboard_endpoint_returns_payload() {
         let db = web::Data::new(init_test_db().await);
-        let resp = get_leaderboard(db).await.expect("leaderboard should succeed");
+        let resp = get_leaderboard(db)
+            .await
+            .expect("leaderboard should succeed");
 
         assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
         let body = to_bytes(resp.into_body())

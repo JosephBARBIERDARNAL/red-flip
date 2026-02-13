@@ -699,20 +699,19 @@ mod tests {
         let target = create_test_user(&db, "target_user", "target@example.com").await;
 
         let conn = db.connect().expect("connection should be available");
-        conn.execute("UPDATE users SET is_admin = 1 WHERE id = ?1", [admin.id.as_str()])
-            .await
-            .expect("admin update should succeed");
+        conn.execute(
+            "UPDATE users SET is_admin = 1 WHERE id = ?1",
+            [admin.id.as_str()],
+        )
+        .await
+        .expect("admin update should succeed");
 
-        assert!(
-            User::is_admin(&db, &admin.id)
-                .await
-                .expect("admin check should succeed")
-        );
-        assert!(
-            !User::is_admin(&db, &target.id)
-                .await
-                .expect("admin check should succeed")
-        );
+        assert!(User::is_admin(&db, &admin.id)
+            .await
+            .expect("admin check should succeed"));
+        assert!(!User::is_admin(&db, &target.id)
+            .await
+            .expect("admin check should succeed"));
 
         User::ban(&db, &target.id, "test reason")
             .await

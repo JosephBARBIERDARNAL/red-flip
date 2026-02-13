@@ -64,8 +64,7 @@ mod tests {
         let secret = "test-secret";
         let token = create_token("user-42", secret).expect("token should be created");
 
-        let user_id =
-            extract_optional_user_from_query(&format!("foo=bar&token={token}"), secret);
+        let user_id = extract_optional_user_from_query(&format!("foo=bar&token={token}"), secret);
 
         assert_eq!(user_id.as_deref(), Some("user-42"));
     }

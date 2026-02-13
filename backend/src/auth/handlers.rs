@@ -160,7 +160,10 @@ mod tests {
         )
         .await
         .expect("register should succeed");
-        assert_eq!(register_response.status(), actix_web::http::StatusCode::CREATED);
+        assert_eq!(
+            register_response.status(),
+            actix_web::http::StatusCode::CREATED
+        );
         let reg_body = to_bytes(register_response.into_body())
             .await
             .expect("response body should be readable");
