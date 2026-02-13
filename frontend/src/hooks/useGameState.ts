@@ -7,6 +7,8 @@ import {
   RoundResult,
   MatchResult,
   Choice,
+  MoveHistoryEntry,
+  RoundWinner,
 } from "@/types/game";
 
 interface UseGameStateProps {
@@ -25,6 +27,9 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [myChoice, setMyChoice] = useState<Choice | null>(null);
+  const [myScore, setMyScore] = useState(0);
+  const [opponentScore, setOpponentScore] = useState(0);
+  const [moveHistory, setMoveHistory] = useState<MoveHistoryEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,6 +46,9 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
           setCurrentRound(1);
           setMyChoice(null);
           setOpponentChose(false);
+          setMyScore(0);
+          setOpponentScore(0);
+          setMoveHistory([]);
           break;
         case "round_start":
           setCurrentRound(data.round as number);
@@ -55,6 +63,18 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
           break;
         case "round_result":
           setRoundResult(data as unknown as RoundResult);
+          setMyScore(data.your_score as number);
+          setOpponentScore(data.opponent_score as number);
+          setMoveHistory((prev) => {
+            const nextEntry: MoveHistoryEntry = {
+              round: data.round as number,
+              playerChoice: data.your_choice as string,
+              opponentChoice: data.opponent_choice as string,
+              winner: data.winner as RoundWinner,
+            };
+            const withoutRound = prev.filter((entry) => entry.round !== nextEntry.round);
+            return [...withoutRound, nextEntry].sort((a, b) => a.round - b.round);
+          });
           setStatus("round_result");
           break;
         case "match_complete":
@@ -100,6 +120,9 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
   const leaveQueue = useCallback(() => {
     send({ type: "leave_queue" });
     setStatus("idle");
+    setMyScore(0);
+    setOpponentScore(0);
+    setMoveHistory([]);
   }, [send]);
 
   const makeChoice = useCallback(
@@ -120,6 +143,9 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
     setRoundResult(null);
     setMatchResult(null);
     setMyChoice(null);
+    setMyScore(0);
+    setOpponentScore(0);
+    setMoveHistory([]);
     setError(null);
   }, []);
 
@@ -132,6 +158,9 @@ export function useGameState({ send, addMessageHandler }: UseGameStateProps) {
     roundResult,
     matchResult,
     myChoice,
+    myScore,
+    opponentScore,
+    moveHistory,
     error,
     joinQueue,
     leaveQueue,

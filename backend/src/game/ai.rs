@@ -1,5 +1,6 @@
 use actix::prelude::*;
 use rand::Rng;
+use std::thread;
 use std::time::Duration;
 
 use crate::game::session::{GameSessionActor, PlayerChoice};
@@ -27,6 +28,10 @@ impl AiPlayerActor {
             let choice = choices[rand::thread_rng().gen_range(0..3)];
 
             log::info!("AI player {} chose: {}", self.user_id, choice);
+
+            // sleep between 1 and 5 seconds before sending the AI move
+            let secs = rand::thread_rng().gen_range(1..=5);
+            thread::sleep(Duration::from_secs(secs));
 
             session.do_send(PlayerChoice {
                 user_id: self.user_id.clone(),

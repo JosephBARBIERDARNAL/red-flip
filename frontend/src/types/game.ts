@@ -18,7 +18,7 @@ export interface RoundResult {
   round: number;
   your_choice: string;
   opponent_choice: string;
-  winner: string;
+  winner: RoundWinner;
   your_score: number;
   opponent_score: number;
 }
@@ -29,6 +29,15 @@ export interface MatchResult {
   opponent_score: number;
   elo_change: number | null;
   new_elo: number | null;
+}
+
+export type RoundWinner = "you" | "opponent" | "draw";
+
+export interface MoveHistoryEntry {
+  round: number;
+  playerChoice: string;
+  opponentChoice: string;
+  winner: RoundWinner;
 }
 
 export interface MatchRecord {

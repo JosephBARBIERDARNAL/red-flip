@@ -89,8 +89,9 @@ export default function PlayPage() {
           timeLeft={game.timeLeft}
           myChoice={game.myChoice}
           opponentChose={game.opponentChose}
-          myScore={game.roundResult?.your_score ?? 0}
-          opponentScore={game.roundResult?.opponent_score ?? 0}
+          myScore={game.myScore}
+          opponentScore={game.opponentScore}
+          moveHistory={game.moveHistory}
           onChoice={game.makeChoice}
         />
       )}
@@ -102,8 +103,10 @@ export default function PlayPage() {
       {game.status === "match_complete" && game.matchResult && (
         <MatchResultDisplay
           result={game.matchResult}
+          moveHistory={game.moveHistory}
           onPlayAgain={game.resetGame}
           onBackToMenu={() => router.push("/dashboard")}
+          onLeaderboard={() => router.push("/leaderboard")}
         />
       )}
     </div>

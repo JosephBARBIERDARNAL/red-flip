@@ -165,7 +165,7 @@ impl GameSessionActor {
             }));
 
         // Check if match is over (Bo3: first to 2 wins, max 5 rounds)
-        if self.p1_score >= 2 || self.p2_score >= 2 || self.current_round >= 5 {
+        if self.p1_score >= 3 || self.p2_score >= 3 {
             self.finish_match(ctx);
         } else {
             self.current_round += 1;

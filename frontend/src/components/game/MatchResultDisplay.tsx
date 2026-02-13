@@ -8,18 +8,23 @@ import {
   faArrowUp,
   faArrowDown,
 } from "@fortawesome/free-solid-svg-icons";
-import { MatchResult } from "@/types/game";
+import { MatchResult, MoveHistoryEntry } from "@/types/game";
+import MoveRecapTable from "./MoveRecapTable";
 
 interface MatchResultDisplayProps {
   result: MatchResult;
+  moveHistory: MoveHistoryEntry[];
   onPlayAgain: () => void;
   onBackToMenu: () => void;
+  onLeaderboard: () => void;
 }
 
 export default function MatchResultDisplay({
   result,
+  moveHistory,
   onPlayAgain,
   onBackToMenu,
+  onLeaderboard,
 }: MatchResultDisplayProps) {
   const isWin = result.result === "win";
   const isDraw = result.result === "draw";
@@ -71,7 +76,15 @@ export default function MatchResultDisplay({
         </div>
       )}
 
-      <div className="flex justify-center gap-4">
+      <div className="mb-6 text-left">
+        <p className="text-sm font-semibold text-gray-700 mb-2">Match recap</p>
+        <MoveRecapTable
+          entries={moveHistory}
+          emptyMessage="No completed rounds to recap."
+        />
+      </div>
+
+      <div className="flex justify-center gap-3">
         <button
           onClick={onPlayAgain}
           className="px-6 py-2.5 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-500 transition-colors cursor-pointer"
@@ -83,6 +96,12 @@ export default function MatchResultDisplay({
           className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
         >
           Back to Menu
+        </button>
+        <button
+          onClick={onLeaderboard}
+          className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          Leaderboard
         </button>
       </div>
     </div>
