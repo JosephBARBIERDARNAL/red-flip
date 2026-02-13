@@ -68,7 +68,6 @@ export default function MoveRecapTable({
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-gray-500">{entry.round}</p>
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${outcome.badge}`}
                 >
